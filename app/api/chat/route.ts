@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // The generative model to use
 const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-1.5-pro",
     systemInstruction:
         "You are EduShield AI, an intelligent academic advisor and early warning assistant. " +
         "You provide precise, actionable, and structured insights based purely on the structured data provided. " +
