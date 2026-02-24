@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "material-symbols/outlined.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
