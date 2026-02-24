@@ -154,6 +154,42 @@
     border: 2px solid #ffffff;
 }
 
+/* AI Chatbot Button */
+.aiChatBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: linear-gradient(135deg, #2563eb, #1e3a8a);
+    color: #ffffff;
+    text-decoration: none;
+    padding: 0.4rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 10px -2px rgba(37, 99, 235, 0.4);
+}
+
+.aiChatBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px -2px rgba(37, 99, 235, 0.5);
+}
+
+.aiIcon {
+    font-size: 1.125rem;
+}
+
+@media (max-width: 640px) {
+    .aiText {
+        display: none;
+    }
+
+    .aiChatBtn {
+        padding: 0.4rem;
+        border-radius: 50%;
+    }
+}
+
 /* Role Tag */
 .roleTag {
     display: inline-block;

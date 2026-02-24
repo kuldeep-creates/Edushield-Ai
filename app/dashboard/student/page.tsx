@@ -66,7 +66,7 @@ export default function StudentDashboard() {
                         <p className={styles.ctaDesc}>
                             Schedule a session with a tutor or chat with AI assistant.
                         </p>
-                        <a href="#" className={styles.ctaBtn}>Get Support</a>
+                        <a href="https://gemini.google.com/u/2/app/e2aa1e35bc8fc5cf" target="_blank" rel="noopener noreferrer" className={styles.ctaBtn}>Get Support</a>
                     </div>
                 </aside>
 

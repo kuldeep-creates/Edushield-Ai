@@ -99,6 +99,19 @@ export default function DashboardNav({ role, userName, searchPlaceholder = 'Sear
                         <span className={styles.badge}></span>
                     </button>
 
+                    {/* AI Assistant Chatbot */}
+                    <a
+                        href="https://gemini.google.com/u/2/app/e2aa1e35bc8fc5cf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.aiChatBtn}
+                        aria-label="AI Assistant"
+                        title="Chat with AI Assistant"
+                    >
+                        <span className={`material-symbols-outlined ${styles.aiIcon}`}>smart_toy</span>
+                        <span className={styles.aiText}>AI Assistant</span>
+                    </a>
+
                     {/* Role Switcher hint */}
                     <div className={styles.roleTag}>{role.charAt(0).toUpperCase() + role.slice(1)}</div>
 
