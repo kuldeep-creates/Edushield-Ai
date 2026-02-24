@@ -101,7 +101,7 @@ export default function DashboardNav({ role, userName, searchPlaceholder = 'Sear
 
                     {/* AI Assistant Chatbot */}
                     <a
-                        href="https://gemini.google.com/u/2/app/e2aa1e35bc8fc5cf"
+                        href="https://opal.google/app/10-IK3Y49LNB4yi79pU9j2ssn8H9sUVJ-"
                         target="_blank"
                         rel="noopener noreferrer"
                         className={styles.aiChatBtn}
