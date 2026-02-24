@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "material-symbols/outlined.css";
 import "./globals.css";
+import AIChatbot from "@/components/AIChatbot";
 
 export const metadata: Metadata = {
   title: "EduShield AI - Academic Early Warning System",
@@ -14,7 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <AIChatbot />
+      </body>
     </html>
   );
 }
