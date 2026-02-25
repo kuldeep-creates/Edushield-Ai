@@ -1,4 +1,5 @@
 import styles from './page.module.css';
+import Footer from '../components/Footer';
 
 export const metadata = {
     title: 'EduShield AI - Academic Early Warning System',
@@ -357,76 +358,7 @@ export default function LandingPage() {
 
                 </main>
 
-                {/* ───────────── FOOTER ───────────── */}
-                <footer className={styles.footer} aria-labelledby="footer-heading">
-
-                    <div className={styles.footerInner}>
-
-                        <div className={styles.footerTop}>
-
-                            {/* Brand column */}
-                            <div className={styles.footerBrand}>
-                                <a href="#" className={styles.footerBrandRow}>
-                                    <div className={styles.footerBrandIcon}>
-                                        <span className="material-symbols-outlined">shield_person</span>
-                                    </div>
-                                    <span className={styles.footerBrandName}>EduShield AI</span>
-                                </a>
-                                <p className={styles.footerBrandDesc}>
-                                    Empowering schools with data-driven insights to ensure no student is left
-                                    behind.
-                                </p>
-                            </div>
-
-                            {/* Link columns */}
-                            <div className={styles.footerLinks}>
-
-                                <div className={styles.footerLinksHalf}>
-                                    <div className={styles.footerCol}>
-                                        <h3 className={styles.footerColTitle}>Solutions</h3>
-                                        <ul className={styles.footerColList} role="list">
-                                            <li><a href="/platform">Platform Overview</a></li>
-                                            <li><a href="/platform">Early Warning</a></li>
-                                            <li><a href="/impact">Impact Metrics</a></li>
-                                        </ul>
-                                    </div>
-                                    <div className={`${styles.footerCol} ${styles.footerColRight}`}>
-                                        <h3 className={styles.footerColTitle}>Support</h3>
-                                        <ul className={styles.footerColList} role="list">
-                                            <li><a href="/contact">Support Center</a></li>
-                                            <li><a href="/contact">API Reference</a></li>
-                                            <li><a href="/contact">System Status</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div className={styles.footerLinksHalf}>
-                                    <div className={styles.footerCol}>
-                                        <h3 className={styles.footerColTitle}>Company</h3>
-                                        <ul className={styles.footerColList} role="list">
-                                            <li><a href="/about">About Us</a></li>
-                                            <li><a href="/contact">Contact</a></li>
-                                            <li><a href="/request-demo">Request Demo</a></li>
-                                        </ul>
-                                    </div>
-                                    <div className={`${styles.footerCol} ${styles.footerColRight}`}>
-                                        <h3 className={styles.footerColTitle}>Legal</h3>
-                                        <ul className={styles.footerColList} role="list">
-                                            <li><a href="/security">Security & Privacy</a></li>
-                                            <li><a href="#">Terms of Service</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <div className={styles.footerBottom}>
-                            <p className={styles.footerCopy}>© 2024 EduShield AI. All rights reserved.</p>
-                        </div>
-
-                    </div>
-                </footer>
+                <Footer />
 
             </div>
         </div>

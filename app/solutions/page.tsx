@@ -1,5 +1,6 @@
 import styles from '../page.module.css';
 import ScrollNav from '../../components/ScrollNav';
+import Footer from '../../components/Footer';
 export const metadata = {
     title: 'Solutions | EduShield AI',
 };
@@ -147,13 +148,7 @@ export default function SolutionsPage() {
 
                 </div>
 
-                <footer className={styles.footer} style={{ borderTop: '1px solid #e2e8f0', marginTop: '0' }}>
-                    <div className={styles.footerInner} style={{ padding: '4rem 1.5rem 2rem', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.5rem' }}>Ready to empower your educators?</h2>
-                        <a href="/request-demo" className={styles.demoBtn} style={{ padding: '0.875rem 2rem', fontSize: '1rem' }}>Schedule a Consultation</a>
-                        <p style={{ marginTop: '3rem', fontSize: '0.875rem', color: '#94a3b8' }}>© 2026 EduShield AI. All rights reserved. Securely built for India.</p>
-                    </div>
-                </footer>
+                <Footer />
             </div >
         </div >
     );

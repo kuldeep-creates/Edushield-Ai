@@ -312,28 +312,15 @@ export default function ActivatePage() {
 
                             </form>
 
-                            {/* Security badges */}
-                            <div className={styles.securityRow}>
-                                <div className={styles.securityBadge}>
-                                    <span className="material-symbols-outlined">security</span>
-                                    <span className={styles.securityBadgeText}>ISO 27001</span>
-                                </div>
-                                <div className={styles.securityDivider} />
-                                <div className={styles.securityBadge}>
-                                    <span className="material-symbols-outlined">lock</span>
-                                    <span className={styles.securityBadgeText}>SSL ENCRYPTED</span>
-                                </div>
-                            </div>
-
                         </div>
 
                         {/* Footer links */}
                         <div className={styles.pageFooter}>
-                            <a className={styles.pageFooterLink} href="#">Terms of Service</a>
+                            <a className={styles.pageFooterLink} href="/terms">Terms of Service</a>
                             <span className={styles.pageFooterDot}>•</span>
-                            <a className={styles.pageFooterLink} href="#">Privacy Policy</a>
+                            <a className={styles.pageFooterLink} href="/security">Privacy Policy</a>
                             <span className={styles.pageFooterDot}>•</span>
-                            <a className={styles.pageFooterLink} href="#">System Status</a>
+                            <a className={styles.pageFooterLink} href="/contact">Support</a>
                         </div>
 
                     </div>

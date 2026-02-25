@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { getDoc, doc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import styles from './page.module.css';
@@ -15,11 +15,21 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('student');
 
+    // Student login mode: 'id' for Student ID, 'email' for Gmail
+    const [studentLoginMode, setStudentLoginMode] = useState<'id' | 'email'>('id');
+
     // Auth state
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     const router = useRouter();
+
+    const redirectToDashboard = async (uid: string) => {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        const userRole = userDoc.exists() ? userDoc.data().role : 'student';
+        router.push(`/dashboard/${userRole}`);
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,24 +42,26 @@ export default function LoginPage() {
         setError('');
 
         try {
-            // If the user inputs a Registration No instead of an email, format it for Firebase
             let authEmail = identifier.trim();
-            if (!authEmail.includes('@')) {
+
+            // If student logged in with Student ID, synthesize the Firebase email
+            if (role === 'student' && studentLoginMode === 'id') {
+                authEmail = `${authEmail.toLowerCase().replace(/[^a-z0-9]/g, '')}@edushield.ai`;
+            } else if (!authEmail.includes('@')) {
+                // Non-student typed without @ — still convert
                 authEmail = `${authEmail.toLowerCase().replace(/[^a-z0-9]/g, '')}@edushield.ai`;
             }
 
             const userCredential = await signInWithEmailAndPassword(auth, authEmail, password);
-            const user = userCredential.user;
-
-            // Fetch role from Firestore to decide which dashboard to redirect to
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            const role = userDoc.exists() ? userDoc.data().role : 'student';
-            router.push(`/dashboard/${role}`);
+            await redirectToDashboard(userCredential.user.uid);
         } catch (err) {
-            console.error('Login Error:', err);
             const firebaseErr = err as any;
-            if (firebaseErr.code === 'auth/invalid-credential' || firebaseErr.code === 'auth/user-not-found' || firebaseErr.code === 'auth/wrong-password') {
-                setError('Invalid credentials. Please try again.');
+            if (
+                firebaseErr.code === 'auth/invalid-credential' ||
+                firebaseErr.code === 'auth/user-not-found' ||
+                firebaseErr.code === 'auth/wrong-password'
+            ) {
+                setError('Invalid credentials. Please check your details and try again.');
             } else {
                 setError('Failed to log in. ' + firebaseErr.message);
             }
@@ -57,6 +69,27 @@ export default function LoginPage() {
             setLoading(false);
         }
     };
+
+    const handleGoogleLogin = async () => {
+        setGoogleLoading(true);
+        setError('');
+        try {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            await redirectToDashboard(result.user.uid);
+        } catch (err) {
+            const firebaseErr = err as any;
+            if (firebaseErr.code === 'auth/popup-closed-by-user') {
+                setError('Sign-in popup was closed. Please try again.');
+            } else {
+                setError('Google sign-in failed. ' + firebaseErr.message);
+            }
+        } finally {
+            setGoogleLoading(false);
+        }
+    };
+
+    const isStudent = role === 'student';
 
     return (
         <div className={styles.page}>
@@ -66,16 +99,13 @@ export default function LoginPage() {
             </a>
 
             <main className={styles.container}>
-                {/* ═══════════════════════════════════════
-            LEFT PANEL — Branding + Feature list
-            ═══════════════════════════════════════ */}
+
+                {/* LEFT PANEL */}
                 <section className={styles.leftPanel}>
-                    {/* Decorative overlays */}
                     <div className={styles.aiPattern} />
                     <div className={styles.glowTop} />
                     <div className={styles.glowBottom} />
 
-                    {/* Brand */}
                     <div className={styles.leftBrand}>
                         <div className={styles.leftBrandIcon}>
                             <span className="material-symbols-outlined">shield</span>
@@ -83,7 +113,6 @@ export default function LoginPage() {
                         <span className={styles.leftBrandName}>EduShield AI</span>
                     </div>
 
-                    {/* Hero content */}
                     <div className={styles.leftHero}>
                         <h1 className={styles.leftTitle}>
                             Prevent Academic Failure{' '}
@@ -116,7 +145,6 @@ export default function LoginPage() {
                         </ul>
                     </div>
 
-                    {/* Footer tagline */}
                     <div className={styles.leftFooter}>
                         <p className={styles.leftTagline}>
                             Stronger Students. Stronger Schools. Stronger Nation.
@@ -124,13 +152,10 @@ export default function LoginPage() {
                     </div>
                 </section>
 
-                {/* ═══════════════════════════════════════
-            RIGHT PANEL — Login Form
-            ═══════════════════════════════════════ */}
+                {/* RIGHT PANEL */}
                 <section className={styles.rightPanel}>
                     <div className={styles.rightInner}>
 
-                        {/* Mobile-only brand header */}
                         <div className={styles.mobileHeader}>
                             <div className={styles.mobileHeaderIcon}>
                                 <span className="material-symbols-outlined">shield</span>
@@ -138,10 +163,8 @@ export default function LoginPage() {
                             <h1 className={styles.mobileHeaderTitle}>EduShield AI</h1>
                         </div>
 
-                        {/* Form card */}
                         <div className={styles.formCard}>
 
-                            {/* Card header */}
                             <div className={styles.formHeader}>
                                 <div className={styles.formHeaderIcon}>
                                     <span className="material-symbols-outlined">verified_user</span>
@@ -150,19 +173,15 @@ export default function LoginPage() {
                                 <p className={styles.formSubtitle}>Secure Institutional Access</p>
                             </div>
 
-                            {/* Form */}
-                            <form
-                                className={styles.form}
-                                onSubmit={handleLogin}
-                            >
+                            <form className={styles.form} onSubmit={handleLogin}>
 
                                 {error && (
-                                    <div style={{ color: 'var(--critical)', fontSize: '0.8125rem', textAlign: 'center', backgroundColor: '#fee2e2', padding: '0.5rem', borderRadius: '0.5rem' }}>
+                                    <div style={{ color: '#dc2626', fontSize: '0.8125rem', textAlign: 'center', backgroundColor: '#fee2e2', padding: '0.625rem', borderRadius: '0.5rem', border: '1px solid #fecaca' }}>
                                         {error}
                                     </div>
                                 )}
 
-                                {/* School / Institution — Multi-tenant field */}
+                                {/* School */}
                                 <div className={styles.fieldGroup}>
                                     <label className={styles.fieldLabel}>School / Institution</label>
                                     <select className={styles.inputSleek}>
@@ -182,12 +201,9 @@ export default function LoginPage() {
                                             <option value="other">Other Institution</option>
                                         </optgroup>
                                     </select>
-                                    <span className={styles.schoolHint}>
-                                        Don&apos;t see your school? Contact your district admin.
-                                    </span>
                                 </div>
 
-                                {/* Access Role */}
+                                {/* Role */}
                                 <div className={styles.fieldGroup}>
                                     <label className={styles.fieldLabel}>Access Role</label>
                                     <select
@@ -203,24 +219,60 @@ export default function LoginPage() {
                                     </select>
                                 </div>
 
-                                {/* Institutional Email / Reg No */}
+                                {/* Student login mode toggle */}
+                                {isStudent && (
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.fieldLabel}>Sign in using</label>
+                                        <div style={{ display: 'flex', gap: '0.5rem', padding: '0.25rem', backgroundColor: '#f1f5f9', borderRadius: '0.625rem', border: '1px solid #e2e8f0' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setStudentLoginMode('id'); setIdentifier(''); }}
+                                                style={{
+                                                    flex: 1, padding: '0.5rem 0.75rem', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, transition: 'all 0.2s',
+                                                    backgroundColor: studentLoginMode === 'id' ? '#ffffff' : 'transparent',
+                                                    color: studentLoginMode === 'id' ? '#1e3a8a' : '#64748b',
+                                                    boxShadow: studentLoginMode === 'id' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                                }}
+                                            >
+                                                🪪 Student ID
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setStudentLoginMode('email'); setIdentifier(''); }}
+                                                style={{
+                                                    flex: 1, padding: '0.5rem 0.75rem', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, transition: 'all 0.2s',
+                                                    backgroundColor: studentLoginMode === 'email' ? '#ffffff' : 'transparent',
+                                                    color: studentLoginMode === 'email' ? '#1e3a8a' : '#64748b',
+                                                    boxShadow: studentLoginMode === 'email' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                                }}
+                                            >
+                                                ✉️ Email / Gmail
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Identifier field — changes based on mode */}
                                 <div className={styles.fieldGroup}>
                                     <label className={styles.fieldLabel}>
-                                        {role === 'student' ? 'Registration No. / Student ID' : 'Email Address'}
+                                        {isStudent && studentLoginMode === 'id'
+                                            ? 'Student ID / Registration No.'
+                                            : 'Email Address'}
                                     </label>
                                     <input
                                         className={styles.inputSleek}
-                                        type={role === 'student' ? 'text' : 'email'}
-                                        placeholder={role === 'student' ? 'e.g. STU-2024-4598 or 2024-DEL-4598' : 'your@email.com'}
+                                        type={isStudent && studentLoginMode === 'id' ? 'text' : 'email'}
+                                        placeholder={isStudent && studentLoginMode === 'id' ? 'e.g. STU-2024-4598' : 'your@email.com'}
                                         value={identifier}
                                         onChange={(e) => setIdentifier(e.target.value)}
                                         required
+                                        autoComplete={isStudent && studentLoginMode === 'id' ? 'off' : 'email'}
                                     />
                                 </div>
 
                                 {/* Password */}
                                 <div className={styles.fieldGroup}>
-                                    <label className={styles.fieldLabel}>Security Password</label>
+                                    <label className={styles.fieldLabel}>Password</label>
                                     <div className={styles.passwordWrap}>
                                         <input
                                             className={styles.inputSleek}
@@ -250,7 +302,7 @@ export default function LoginPage() {
                                         <input type="checkbox" />
                                         <span className={styles.rememberText}>Remember device</span>
                                     </label>
-                                    <a className={styles.forgotLink} href="#">Forgot Password?</a>
+                                    <a className={styles.forgotLink} href="/contact">Forgot Password?</a>
                                 </div>
 
                                 {/* Submit */}
@@ -263,37 +315,51 @@ export default function LoginPage() {
                                     )}
                                 </button>
 
+                                {/* Divider */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0.25rem 0' }}>
+                                    <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>OR</span>
+                                    <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                                </div>
+
+                                {/* Google Sign-In */}
+                                <button
+                                    type="button"
+                                    onClick={handleGoogleLogin}
+                                    disabled={googleLoading}
+                                    style={{
+                                        width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.625rem',
+                                        fontSize: '0.9375rem', fontWeight: 600, color: '#374151', transition: 'all 0.2s',
+                                        opacity: googleLoading ? 0.7 : 1,
+                                    }}
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                                        <path d="M43.6 20.5H42V20H24v8h11.3C33.6 33 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.8 29.3 4.8 24 4.8 12.9 4.8 4 13.7 4 24.8s8.9 20 20 20c11 0 19.4-7.7 19.4-19.6 0-1.3-.1-2.6-.4-3.7z" fill="#FFC107" />
+                                        <path d="M6.3 14.7l6.6 4.8C14.6 15.9 19 12.8 24 12.8c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.8 29.3 4.8 24 4.8c-7.6 0-14.2 4.2-17.7 9.9z" fill="#FF3D00" />
+                                        <path d="M24 44.8c5.2 0 9.8-1.9 13.4-5L31 35.2C29.1 36.7 26.7 37.6 24 37.6c-5.2 0-9.5-3-11.3-7.3l-6.6 5.1C9.6 40.7 16.3 44.8 24 44.8z" fill="#4CAF50" />
+                                        <path d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.4 4.4-4.5 5.8l6.4 4.7C40.4 35.9 44 30.8 44 24.8c0-1.3-.1-2.6-.4-3.7z" fill="#1976D2" />
+                                    </svg>
+                                    {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                                </button>
+
                                 {/* Activate link */}
                                 <div className={styles.activatePrompt}>
-                                    <span className={styles.activateText}>Student or Parent?</span>
+                                    <span className={styles.activateText}>New to EduShield?</span>
                                     <a href="/activate" className={styles.activateLink}>Activate Account</a>
                                 </div>
 
                             </form>
 
-                            {/* Security badges */}
-                            <div className={styles.securityRow}>
-                                <div className={styles.securityBadge}>
-                                    <span className="material-symbols-outlined">security</span>
-                                    <span className={styles.securityBadgeText}>ISO 27001</span>
-                                </div>
-                                <div className={styles.securityDivider} />
-                                <div className={styles.securityBadge}>
-                                    <span className="material-symbols-outlined">lock</span>
-                                    <span className={styles.securityBadgeText}>SSL ENCRYPTED</span>
-                                </div>
-
-                            </div>
-
                         </div>
 
                         {/* Footer links */}
                         <div className={styles.pageFooter}>
-                            <a className={styles.pageFooterLink} href="#">Terms of Service</a>
+                            <a className={styles.pageFooterLink} href="/terms">Terms of Service</a>
                             <span className={styles.pageFooterDot}>•</span>
-                            <a className={styles.pageFooterLink} href="#">Privacy Policy</a>
+                            <a className={styles.pageFooterLink} href="/security">Privacy Policy</a>
                             <span className={styles.pageFooterDot}>•</span>
-                            <a className={styles.pageFooterLink} href="#">System Status</a>
+                            <a className={styles.pageFooterLink} href="/contact">Support</a>
                         </div>
 
                     </div>

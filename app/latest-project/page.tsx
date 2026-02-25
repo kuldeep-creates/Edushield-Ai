@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import styles from '../page.module.css';
+import Footer from '../../components/Footer';
 
 export const dynamic = 'force-dynamic';
 
@@ -140,11 +141,7 @@ export default function LatestProjectPage() {
                     </div>
                 </main>
 
-                <footer className={styles.footer} style={{ borderTop: '1px solid #e2e8f0', marginTop: '0' }}>
-                    <div className={styles.footerInner} style={{ padding: '4rem 1.5rem 2rem', textAlign: 'center' }}>
-                        <p style={{ fontSize: '0.875rem', color: '#94a3b8' }}>© 2026 EduShield AI. Securely built for India.</p>
-                    </div>
-                </footer>
+                <Footer />
             </div>
         </div>
     );
