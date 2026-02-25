@@ -34,6 +34,7 @@ export default function Footer() {
                             <ul className={styles.colList}>
                                 <li><a href="/features">Features</a></li>
                                 <li><a href="/solutions">Solutions</a></li>
+                                <li><a href="/pricing">Pricing</a></li>
                                 <li><a href="/integrations">Integrations</a></li>
                                 <li><a href="/impact">Impact Metrics</a></li>
                             </ul>
@@ -43,6 +44,7 @@ export default function Footer() {
                             <h3 className={styles.colTitle}>Resources</h3>
                             <ul className={styles.colList}>
                                 <li><a href="/success-stories">Success Stories</a></li>
+                                <li><a href="/help">Help Center</a></li>
                                 <li><a href="/latest-project">Dev Report</a></li>
                             </ul>
                         </div>
@@ -51,6 +53,8 @@ export default function Footer() {
                             <h3 className={styles.colTitle}>Company</h3>
                             <ul className={styles.colList}>
                                 <li><a href="/about">About Us</a></li>
+                                <li><a href="/careers">Careers</a></li>
+                                <li><a href="/partners">Partners</a></li>
                                 <li><a href="/contact">Contact</a></li>
                                 <li><a href="/request-demo">Request Demo</a></li>
                             </ul>
