@@ -12,7 +12,7 @@ export default function ActivatePage() {
 
     // Form state
     const [school, setSchool] = useState('');
-    const [role, setRole] = useState('student');
+    const role = 'student';
     const [regNo, setRegNo] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -26,15 +26,12 @@ export default function ActivatePage() {
     const handleActivate = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const isStudent = role === 'student';
-        const isParent = role === 'parent';
-
         if (!school || !email || !password) {
             setError('Please fill in all details.');
             return;
         }
-        if ((isStudent || isParent) && !regNo) {
-            setError(isParent ? 'Parents must provide their child\'s Registration No.' : 'Students must provide their Registration No. / Student ID.');
+        if (!regNo) {
+            setError('Please enter your Student ID / Registration No.');
             return;
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,9 +58,8 @@ export default function ActivatePage() {
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
                 school,
-                role,
-                ...(role === 'student' ? { regNo: regNo.trim() } : {}),
-                ...(role === 'parent' ? { childRegNo: regNo.trim() } : {}),
+                role: 'student',
+                regNo: regNo.trim(),
                 email: email.trim().toLowerCase(),
                 authEmail,
                 createdAt: new Date().toISOString()
@@ -114,32 +110,38 @@ export default function ActivatePage() {
                     {/* Hero content */}
                     <div className={styles.leftHero}>
                         <h1 className={styles.leftTitle}>
-                            Prevent Academic Failure{' '}
-                            <span className={styles.leftTitleAccent}>Before It Happens.</span>
+                            Your grades.{' '}
+                            <span className={styles.leftTitleAccent}>Your future. Your dashboard.</span>
                         </h1>
                         <p className={styles.leftDesc}>
-                            EduShield AI empowers schools with early risk detection and smart
-                            intervention tools to reduce dropouts and strengthen the education system.
+                            Activate your student account to see your live risk score, track attendance
+                            impact, and get private alerts — before exam pressure builds up.
                         </p>
 
                         <ul className={styles.features}>
                             <li className={styles.feature}>
                                 <div className={styles.featureIcon}>
-                                    <span className="material-symbols-outlined">psychology</span>
-                                </div>
-                                <span className={styles.featureText}>AI-Based Risk Prediction</span>
-                            </li>
-                            <li className={styles.feature}>
-                                <div className={styles.featureIcon}>
                                     <span className="material-symbols-outlined">monitoring</span>
                                 </div>
-                                <span className={styles.featureText}>Real-Time Student Monitoring</span>
+                                <span className={styles.featureText}>See Your Live Risk Score Weekly</span>
                             </li>
                             <li className={styles.feature}>
                                 <div className={styles.featureIcon}>
-                                    <span className="material-symbols-outlined">insights</span>
+                                    <span className="material-symbols-outlined">event_available</span>
                                 </div>
-                                <span className={styles.featureText}>Data-Driven Intervention Support</span>
+                                <span className={styles.featureText}>Track Attendance Impact on Grades</span>
+                            </li>
+                            <li className={styles.feature}>
+                                <div className={styles.featureIcon}>
+                                    <span className="material-symbols-outlined">notifications_active</span>
+                                </div>
+                                <span className={styles.featureText}>Private Early Alerts — Just for You</span>
+                            </li>
+                            <li className={styles.feature}>
+                                <div className={styles.featureIcon}>
+                                    <span className="material-symbols-outlined">target</span>
+                                </div>
+                                <span className={styles.featureText}>Smart Goal Planner to Hit Your Targets</span>
                             </li>
                         </ul>
                     </div>
@@ -147,7 +149,7 @@ export default function ActivatePage() {
                     {/* Footer tagline */}
                     <div className={styles.leftFooter}>
                         <p className={styles.leftTagline}>
-                            Stronger Students. Stronger Schools. Stronger Nation.
+                            Know your risk. Change your outcome.
                         </p>
                     </div>
                 </section>
@@ -174,8 +176,8 @@ export default function ActivatePage() {
                                 <div className={styles.formHeaderIcon}>
                                     <span className="material-symbols-outlined">person_add</span>
                                 </div>
-                                <h2 className={styles.formTitle}>Activate Account</h2>
-                                <p className={styles.formSubtitle}>Link your school profile</p>
+                                <h2 className={styles.formTitle}>Student Activation</h2>
+                                <p className={styles.formSubtitle}>Link your Student ID to get started</p>
                             </div>
 
                             {/* Form */}
@@ -220,39 +222,20 @@ export default function ActivatePage() {
                                     </span>
                                 </div>
 
-                                {/* Access Role */}
+                                {/* Student ID */}
                                 <div className={styles.fieldGroup}>
-                                    <label className={styles.fieldLabel}>Role</label>
-                                    <select
+                                    <label className={styles.fieldLabel}>Student ID / Registration No.</label>
+                                    <input
                                         className={styles.inputSleek}
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
+                                        type="text"
+                                        placeholder="e.g. STU-2024-4598"
+                                        value={regNo}
+                                        onChange={(e) => setRegNo(e.target.value)}
                                         required
-                                    >
-                                        <option value="student">STUDENT</option>
-                                        <option value="parent">PARENT</option>
-                                        <option value="teacher">TEACHER</option>
-                                        <option value="principal">PRINCIPAL</option>
-                                        <option value="district">DISTRICT ADMIN</option>
-                                    </select>
+                                        autoComplete="off"
+                                    />
+                                    <span className={styles.schoolHint}>Find this on your admit card, school ID, or ask your class teacher.</span>
                                 </div>
-
-                                {/* Registration No / Student ID — Students and Parents only */}
-                                {(role === 'student' || role === 'parent') && (
-                                    <div className={styles.fieldGroup}>
-                                        <label className={styles.fieldLabel}>
-                                            {role === 'parent' ? "Child's Registration No. / Student ID" : "Registration No. / Student ID"}
-                                        </label>
-                                        <input
-                                            className={styles.inputSleek}
-                                            type="text"
-                                            placeholder="e.g. STU-2024-4598 or 2024-DEL-4598"
-                                            value={regNo}
-                                            onChange={(e) => setRegNo(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                )}
 
                                 {/* Personal / Work Email */}
                                 <div className={styles.fieldGroup}>
@@ -304,10 +287,15 @@ export default function ActivatePage() {
                                     )}
                                 </button>
 
-                                {/* Login link */}
                                 <div className={styles.activatePrompt}>
                                     <span className={styles.activateText}>Already activated?</span>
                                     <a href="/login" className={styles.activateLink}>Log in</a>
+                                </div>
+
+                                {/* Staff redirect */}
+                                <div style={{ marginTop: '0.25rem', padding: '0.75rem 1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem', color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
+                                    👩‍🏫 Are you a teacher, principal, or admin?{' '}
+                                    <a href="/contact" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Contact your district to get access →</a>
                                 </div>
 
                             </form>
