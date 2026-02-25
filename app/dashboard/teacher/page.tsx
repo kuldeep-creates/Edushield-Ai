@@ -1,9 +1,63 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import styles from './page.module.css';
 import DashboardNav from '@/components/DashboardNav';
 
 export default function TeacherDashboard() {
+    const [students, setStudents] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Fetch static mock records and run them through our real Python backend
+        const fetchPredictions = async () => {
+            try {
+                const payload = {
+                    records: [
+                        { student_id: '49201', subject_name: 'Math', unit_test_1: 35.0, score_momentum: -15.0, overall_attendance_pct: 64.0, total_days_absent: 32, max_absent_streak_length: 12 },
+                        { student_id: '49205', subject_name: 'Math', unit_test_1: 45.0, score_momentum: -22.0, overall_attendance_pct: 78.0, total_days_absent: 20, max_absent_streak_length: 5 },
+                        { student_id: '49212', subject_name: 'Math', unit_test_1: 65.0, score_momentum: -5.0, overall_attendance_pct: 88.0, total_days_absent: 11, max_absent_streak_length: 3 },
+                        { student_id: '49230', subject_name: 'Math', unit_test_1: 95.0, score_momentum: 2.0, overall_attendance_pct: 98.0, total_days_absent: 1, max_absent_streak_length: 1 },
+                        { student_id: '49245', subject_name: 'Math', unit_test_1: 80.0, score_momentum: -2.0, overall_attendance_pct: 85.0, total_days_absent: 14, max_absent_streak_length: 4 }
+                    ],
+                    apply_loophole_patches: true,
+                    holiday_factor: 1.0
+                };
+
+                const res = await fetch("http://127.0.0.1:8000/predict/batch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                // Map the api results to UI profiles
+                const profiles: Record<string, any> = {
+                    '49201': { name: 'Marcus Johnson', img: '11', attendance: '64%' },
+                    '49205': { name: 'Sarah Lee', img: '5', attendance: '78%' },
+                    '49212': { name: 'David Kim', img: '12', attendance: '88%' },
+                    '49230': { name: 'Emily Rose', img: '9', attendance: '98%' },
+                    '49245': { name: 'James Tyler', img: '33', attendance: '85%' },
+                };
+
+                const dynamicStudents = data.results.map((r: any) => ({
+                    ...r,
+                    ...profiles[r.student_id]
+                }));
+
+                // Sort by highest risk first
+                dynamicStudents.sort((a: any, b: any) => b.risk_probability - a.risk_probability);
+                setStudents(dynamicStudents);
+            } catch (error) {
+                console.error("Failed to load predictions:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchPredictions();
+    }, []);
+
     return (
         <div className={styles.container}>
             {/* ---------- NAVIGATION BAR ---------- */}
@@ -141,168 +195,48 @@ export default function TeacherDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {/* Row 1 */}
-                                        <tr>
-                                            <td>
-                                                <div className={styles.userCell}>
-                                                    <div className={styles.userAvatar} style={{ backgroundImage: 'url("https://i.pravatar.cc/150?img=11")' }}></div>
-                                                    <div className={styles.userInfo}>
-                                                        <span className={styles.userName}>Marcus Johnson</span>
-                                                        <span className={styles.userId}>ID: 49201</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={styles.riskScoreWrap}>
-                                                    <span className={`${styles.riskScoreNum} ${styles.red}`}>92</span>
-                                                    <div className={styles.riskBarBg}>
-                                                        <div className={`${styles.riskBarFill} ${styles.red}`} style={{ width: '92%' }}></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`${styles.badge} ${styles.red}`}>High<br />(85%)</span>
-                                            </td>
-                                            <td>
-                                                <div className={styles.subjectPillWrap}>
-                                                    <span className={styles.subjectPill}>Math</span>
-                                                    <span className={styles.subjectPill}>Physics</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={styles.attendanceText}>64%</span>
-                                            </td>
-                                        </tr>
-
-                                        {/* Row 2 */}
-                                        <tr>
-                                            <td>
-                                                <div className={styles.userCell}>
-                                                    <div className={styles.userAvatar} style={{ backgroundImage: 'url("https://i.pravatar.cc/150?img=5")' }}></div>
-                                                    <div className={styles.userInfo}>
-                                                        <span className={styles.userName}>Sarah Lee</span>
-                                                        <span className={styles.userId}>ID: 49205</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={styles.riskScoreWrap}>
-                                                    <span className={`${styles.riskScoreNum} ${styles.red}`}>88</span>
-                                                    <div className={styles.riskBarBg}>
-                                                        <div className={`${styles.riskBarFill} ${styles.red}`} style={{ width: '88%' }}></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`${styles.badge} ${styles.red}`}>High<br />(78%)</span>
-                                            </td>
-                                            <td>
-                                                <div className={styles.subjectPillWrap}>
-                                                    <span className={styles.subjectPill}>History</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={styles.attendanceText}>71%</span>
-                                            </td>
-                                        </tr>
-
-                                        {/* Row 3 */}
-                                        <tr>
-                                            <td>
-                                                <div className={styles.userCell}>
-                                                    <div className={styles.userAvatar} style={{ backgroundImage: 'url("https://i.pravatar.cc/150?img=12")' }}></div>
-                                                    <div className={styles.userInfo}>
-                                                        <span className={styles.userName}>David Kim</span>
-                                                        <span className={styles.userId}>ID: 49212</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={styles.riskScoreWrap}>
-                                                    <span className={`${styles.riskScoreNum} ${styles.yellow}`}>65</span>
-                                                    <div className={styles.riskBarBg}>
-                                                        <div className={`${styles.riskBarFill} ${styles.yellow}`} style={{ width: '65%' }}></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`${styles.badge} ${styles.yellow}`}>Med<br />(45%)</span>
-                                            </td>
-                                            <td>
-                                                <div className={styles.subjectPillWrap}>
-                                                    <span className={styles.subjectPill}>Chem</span>
-                                                    <span className={styles.subjectPill}>Bio</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={styles.attendanceText}>88%</span>
-                                            </td>
-                                        </tr>
-
-                                        {/* Row 4 */}
-                                        <tr>
-                                            <td>
-                                                <div className={styles.userCell}>
-                                                    <div className={styles.userAvatar} style={{ backgroundImage: 'url("https://i.pravatar.cc/150?img=9")' }}></div>
-                                                    <div className={styles.userInfo}>
-                                                        <span className={styles.userName}>Emily Rose</span>
-                                                        <span className={styles.userId}>ID: 49230</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={styles.riskScoreWrap}>
-                                                    <span className={`${styles.riskScoreNum} ${styles.green}`}>22</span>
-                                                    <div className={styles.riskBarBg}>
-                                                        <div className={`${styles.riskBarFill} ${styles.green}`} style={{ width: '22%' }}></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`${styles.badge} ${styles.green}`}>Low<br />(5%)</span>
-                                            </td>
-                                            <td>
-                                                <div className={styles.subjectPillWrap}>
-                                                    <span className={styles.subjectPill} style={{ fontStyle: 'italic', color: '#94a3b8', border: 'none', background: 'none' }}>None</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={styles.attendanceText}>98%</span>
-                                            </td>
-                                        </tr>
-
-                                        {/* Row 5 */}
-                                        <tr>
-                                            <td>
-                                                <div className={styles.userCell}>
-                                                    <div className={styles.userAvatar} style={{ backgroundImage: 'url("https://i.pravatar.cc/150?img=33")' }}></div>
-                                                    <div className={styles.userInfo}>
-                                                        <span className={styles.userName}>James Tyler</span>
-                                                        <span className={styles.userId}>ID: 49245</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={styles.riskScoreWrap}>
-                                                    <span className={`${styles.riskScoreNum} ${styles.yellow}`}>58</span>
-                                                    <div className={styles.riskBarBg}>
-                                                        <div className={`${styles.riskBarFill} ${styles.yellow}`} style={{ width: '58%' }}></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`${styles.badge} ${styles.yellow}`}>Med<br />(38%)</span>
-                                            </td>
-                                            <td>
-                                                <div className={styles.subjectPillWrap}>
-                                                    <span className={styles.subjectPill}>English</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={styles.attendanceText}>82%</span>
-                                            </td>
-                                        </tr>
-
+                                        {isLoading ? (
+                                            <tr>
+                                                <td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>Loading realtime model predictions...</td>
+                                            </tr>
+                                        ) : (
+                                            students.map((student) => (
+                                                <tr key={student.student_id}>
+                                                    <td>
+                                                        <div className={styles.userCell}>
+                                                            <div className={styles.userAvatar} style={{ backgroundImage: `url("https://i.pravatar.cc/150?img=${student.img}")` }}></div>
+                                                            <div className={styles.userInfo}>
+                                                                <span className={styles.userName}>{student.name}</span>
+                                                                <span className={styles.userId}>ID: {student.student_id}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className={styles.riskScoreWrap}>
+                                                            <span className={`${styles.riskScoreNum} ${student.at_risk ? styles.red : styles.green}`}>
+                                                                {Math.round(student.risk_probability * 100)}
+                                                            </span>
+                                                            <div className={styles.riskBarBg}>
+                                                                <div className={`${styles.riskBarFill} ${student.at_risk ? styles.red : styles.green}`} style={{ width: `${Math.round(student.risk_probability * 100)}%` }}></div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className={`${styles.badge} ${student.at_risk ? styles.red : styles.green}`}>
+                                                            {student.risk_label}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div className={styles.subjectPillWrap}>
+                                                            <span className={styles.subjectPill}>{student.subject_name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className={styles.attendanceText}>{student.attendance}</span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

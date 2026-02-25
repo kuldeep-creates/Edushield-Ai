@@ -24,18 +24,18 @@ export default function LandingPage() {
                                 <span className={styles.brandName}>EduShield AI</span>
                             </a>
 
-                            {/* Nav */}
+                            {/* Main Navigation */}
                             <nav className={styles.nav}>
-                                <a href="#" className={styles.navLink}>Platform</a>
-                                <a href="#" className={styles.navLink}>Impact</a>
-                                <a href="#" className={styles.navLink}>About Us</a>
-                                <a href="#" className={styles.navLink}>Contact</a>
+                                <a href="/features" className={styles.navLink}>Features</a>
+                                <a href="/solutions" className={styles.navLink}>Solutions</a>
+                                <a href="/integrations" className={styles.navLink}>Integrations</a>
+                                <a href="/success-stories" className={styles.navLink}>Success Stories</a>
                             </nav>
 
                             {/* Actions */}
                             <div className={styles.headerActions}>
                                 <a href="/login" className={styles.loginLink}>Log in</a>
-                                <a href="#" className={styles.demoBtn}>Request Demo</a>
+                                <a href="/request-demo" className={styles.demoBtn}>Request Demo</a>
                             </div>
 
                         </div>
@@ -54,7 +54,7 @@ export default function LandingPage() {
                                 <div className={styles.heroBadge}>
                                     <div className={styles.heroBadgeInner}>
                                         Transforming data into student success.{' '}
-                                        <a href="#" className={styles.heroBadgeLink}>
+                                        <a href="/latest-project" className={styles.heroBadgeLink}>
                                             <span className={styles.heroBadgeStretch} aria-hidden="true" />
                                             Read our latest report <span aria-hidden="true">→</span>
                                         </a>
@@ -90,14 +90,111 @@ export default function LandingPage() {
                                     <div
                                         className={styles.dashboardPreview}
                                         aria-label="Dashboard interface showing student analytics"
+                                        style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc', overflow: 'hidden', textAlign: 'left', border: '1px solid #e2e8f0', padding: '1.5rem', gap: '1.5rem' }}
                                     >
-                                        <div className={styles.dashboardIcon}>
-                                            <span className="material-symbols-outlined">analytics</span>
+                                        {/* Header Area */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <h3 style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>insights</span>
+                                                    EduShield Predictive Model
+                                                </h3>
+                                                <p style={{ fontSize: 'clamp(0.7rem, 1.2vw, 0.9rem)', color: '#64748b', margin: '4px 0 0 0' }}>Real-time Risk Trajectory & Interventions</p>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <span style={{ fontSize: 'clamp(0.6rem, 1vw, 0.8rem)', fontWeight: 600, color: '#059669', backgroundColor: '#ecfdf5', padding: '0.25rem 0.75rem', borderRadius: '9999px', display: 'flex', alignItems: 'center', gap: '0.375rem', border: '1px solid #a7f3d0' }}>
+                                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }}></span>
+                                                    LIVE
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className={styles.dashboardBorder}>
-                                            <p className={styles.dashboardBorderText}>
-                                                Dashboard Preview: Student Retention Metrics
-                                            </p>
+
+                                        {/* KPI Cards row */}
+                                        <div style={{ display: 'flex', gap: '1rem', height: 'auto', minHeight: '60px' }}>
+                                            {[
+                                                { label: 'Total Tracked', val: '24,592', change: '+2.4%', up: true, alert: false },
+                                                { label: 'High Risk Alerts', val: '142', change: '-12%', up: true, alert: true },
+                                                { label: 'Intervention SR', val: '78.4%', change: '+5.1%', up: true, alert: false },
+                                            ].map((kpi, i) => (
+                                                <div key={i} style={{ flex: 1, backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e2e8f0', padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                                                    <div style={{ fontSize: 'clamp(0.6rem, 1.1vw, 0.8rem)', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap', marginBottom: '0.5rem' }}>{kpi.label}</div>
+                                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                                                        <span style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, color: kpi.alert ? '#ef4444' : '#0f172a' }}>{kpi.val}</span>
+                                                        <span style={{ flexShrink: 0, fontSize: 'clamp(0.5rem, 0.9vw, 0.7rem)', color: kpi.up ? '#059669' : '#ef4444', backgroundColor: kpi.up ? '#ecfdf5' : '#fef2f2', padding: '0.125rem 0.375rem', borderRadius: '0.25rem', fontWeight: 700, display: 'flex', alignItems: 'center' }}>
+                                                            <span className="material-symbols-outlined" style={{ fontSize: 'clamp(0.6rem, 1.1vw, 0.8rem)' }}>{kpi.up ? 'trending_up' : 'trending_down'}</span>
+                                                            {kpi.change}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Chart area mock: Line Chart replacing bar chart */}
+                                        <div style={{ flex: 1, backgroundColor: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e2e8f0', padding: '1rem', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                <div style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1rem)', fontWeight: 700, color: '#0f172a' }}>Risk Trajectory (90 Days)</div>
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <span style={{ fontSize: 'clamp(0.6rem, 1vw, 0.75rem)', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-primary)' }}></span> Actual
+                                                    </span>
+                                                    <span style={{ fontSize: 'clamp(0.6rem, 1vw, 0.75rem)', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#94a3b8' }}></span> Predicted
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div style={{ flex: 1, position: 'relative', width: '100%', marginTop: 'auto' }}>
+                                                {/* Grid lines */}
+                                                <div style={{ position: 'absolute', top: '0', left: 0, right: 0, borderTop: '1px dashed #f1f5f9' }}></div>
+                                                <div style={{ position: 'absolute', top: '25%', left: 0, right: 0, borderTop: '1px dashed #f1f5f9' }}></div>
+                                                <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, borderTop: '1px dashed #f1f5f9' }}></div>
+                                                <div style={{ position: 'absolute', top: '75%', left: 0, right: 0, borderTop: '1px dashed #f1f5f9' }}></div>
+                                                <div style={{ position: 'absolute', bottom: '0', left: 0, right: 0, borderTop: '1px solid #e2e8f0' }}></div>
+
+                                                {/* Simulated Chart Container */}
+                                                <div style={{ position: 'absolute', inset: 0, bottom: '1.5rem' }}>
+                                                    {/* SVG Area chart */}
+                                                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+                                                        <defs>
+                                                            <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+                                                                <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.2" />
+                                                                <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
+                                                            </linearGradient>
+                                                            <linearGradient id="predictGradient" x1="0" x2="0" y1="0" y2="1">
+                                                                <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.2" />
+                                                                <stop offset="100%" stopColor="#94a3b8" stopOpacity="0" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        {/* Actual data curve */}
+                                                        <path d="M0,80 C15,75 30,40 60,50 L60,100 L0,100 Z" fill="url(#chartGradient)" />
+                                                        <path d="M0,80 C15,75 30,40 60,50" fill="none" stroke="var(--color-primary)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+
+                                                        {/* Predicted data curve */}
+                                                        <path d="M60,50 C75,55 85,15 100,20" fill="none" stroke="#94a3b8" strokeWidth="2" strokeDasharray="6,4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+                                                        <path d="M60,50 C75,55 85,15 100,20 L100,100 L60,100 Z" fill="url(#predictGradient)" />
+                                                    </svg>
+
+                                                    {/* Data Point: Current */}
+                                                    <div style={{ position: 'absolute', left: '60%', top: '50%', width: '10px', height: '10px', backgroundColor: '#ffffff', border: '2px solid var(--color-primary)', borderRadius: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}></div>
+
+                                                    {/* Data Point: Predicted */}
+                                                    <div style={{ position: 'absolute', left: '100%', top: '20%', width: '10px', height: '10px', backgroundColor: '#ffffff', border: '2px solid #ef4444', borderRadius: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}></div>
+
+                                                    {/* Tooltip mockup for Prediction */}
+                                                    <div style={{ position: 'absolute', left: '100%', top: '20%', transform: 'translate(-80%, -150%)', backgroundColor: '#1e293b', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.7rem', fontWeight: 600, zIndex: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                                                        12% High Risk
+                                                        <div style={{ position: 'absolute', bottom: '-4px', right: '20%', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid #1e293b' }}></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* X Axis Labels */}
+                                                <div style={{ position: 'absolute', bottom: '-0.25rem', left: 0, right: 0, display: 'flex', justifyContent: 'space-between', fontSize: 'clamp(0.55rem, 1vw, 0.75rem)', color: '#64748b', fontWeight: 500 }}>
+                                                    <span>Month 1</span>
+                                                    <span>Month 2</span>
+                                                    <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>Current</span>
+                                                    <span style={{ color: '#ef4444', fontWeight: 700 }}>Forecast (M4)</span>
+                                                </div>
+
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -288,17 +385,17 @@ export default function LandingPage() {
                                     <div className={styles.footerCol}>
                                         <h3 className={styles.footerColTitle}>Solutions</h3>
                                         <ul className={styles.footerColList} role="list">
-                                            <li><a href="#">Early Warning</a></li>
-                                            <li><a href="#">Intervention Planning</a></li>
-                                            <li><a href="#">District Analytics</a></li>
+                                            <li><a href="/platform">Platform Overview</a></li>
+                                            <li><a href="/platform">Early Warning</a></li>
+                                            <li><a href="/impact">Impact Metrics</a></li>
                                         </ul>
                                     </div>
                                     <div className={`${styles.footerCol} ${styles.footerColRight}`}>
                                         <h3 className={styles.footerColTitle}>Support</h3>
                                         <ul className={styles.footerColList} role="list">
-                                            <li><a href="#">Documentation</a></li>
-                                            <li><a href="#">API Reference</a></li>
-                                            <li><a href="#">System Status</a></li>
+                                            <li><a href="/contact">Support Center</a></li>
+                                            <li><a href="/contact">API Reference</a></li>
+                                            <li><a href="/contact">System Status</a></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -307,16 +404,16 @@ export default function LandingPage() {
                                     <div className={styles.footerCol}>
                                         <h3 className={styles.footerColTitle}>Company</h3>
                                         <ul className={styles.footerColList} role="list">
-                                            <li><a href="#">About</a></li>
-                                            <li><a href="#">Blog</a></li>
-                                            <li><a href="#">Careers</a></li>
+                                            <li><a href="/about">About Us</a></li>
+                                            <li><a href="/contact">Contact</a></li>
+                                            <li><a href="/request-demo">Request Demo</a></li>
                                         </ul>
                                     </div>
                                     <div className={`${styles.footerCol} ${styles.footerColRight}`}>
                                         <h3 className={styles.footerColTitle}>Legal</h3>
                                         <ul className={styles.footerColList} role="list">
-                                            <li><a href="#">Privacy</a></li>
-                                            <li><a href="#">Terms</a></li>
+                                            <li><a href="/security">Security & Privacy</a></li>
+                                            <li><a href="#">Terms of Service</a></li>
                                         </ul>
                                     </div>
                                 </div>

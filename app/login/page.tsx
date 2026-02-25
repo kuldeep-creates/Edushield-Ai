@@ -45,12 +45,13 @@ export default function LoginPage() {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             const role = userDoc.exists() ? userDoc.data().role : 'student';
             router.push(`/dashboard/${role}`);
-        } catch (err: any) {
+        } catch (err) {
             console.error('Login Error:', err);
-            if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+            const firebaseErr = err as any;
+            if (firebaseErr.code === 'auth/invalid-credential' || firebaseErr.code === 'auth/user-not-found' || firebaseErr.code === 'auth/wrong-password') {
                 setError('Invalid credentials. Please try again.');
             } else {
-                setError('Failed to log in. ' + err.message);
+                setError('Failed to log in. ' + firebaseErr.message);
             }
         } finally {
             setLoading(false);
@@ -59,8 +60,12 @@ export default function LoginPage() {
 
     return (
         <div className={styles.page}>
-            <main className={styles.container}>
+            {/* Global Back Button */}
+            <a href="/" className={styles.closeOverlayBtn} aria-label="Go Back">
+                <span className="material-symbols-outlined">arrow_back</span>
+            </a>
 
+            <main className={styles.container}>
                 {/* ═══════════════════════════════════════
             LEFT PANEL — Branding + Feature list
             ═══════════════════════════════════════ */}

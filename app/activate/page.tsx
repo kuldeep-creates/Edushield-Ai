@@ -87,6 +87,11 @@ export default function ActivatePage() {
 
     return (
         <div className={styles.page}>
+            {/* Global Back Button */}
+            <a href="/" className={styles.closeOverlayBtn} aria-label="Go Back">
+                <span className="material-symbols-outlined">arrow_back</span>
+            </a>
+
             <main className={styles.container}>
 
                 {/* ═══════════════════════════════════════

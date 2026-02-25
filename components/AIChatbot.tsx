@@ -34,8 +34,13 @@ export default function AIChatbot() {
     const [isLoading, setIsLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
+    // Auto scroll
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, isLoading]);
+
     // Only show on dashboard pages
-    if (!pathname.startsWith("/dashboard")) return null;
+    if (!pathname || !pathname.startsWith("/dashboard")) return null;
 
     // Determine role based on URL for dummy context mapping
     const roleContext = pathname.includes("teacher") || pathname.includes("principal") || pathname.includes("district")
@@ -67,18 +72,12 @@ export default function AIChatbot() {
             } else {
                 setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${data.error}` }]);
             }
-        } catch (error) {
+        } catch {
             setMessages((prev) => [...prev, { role: "assistant", content: "Failed to connect to AI server." }]);
         } finally {
             setIsLoading(false);
         }
     };
-
-    // Auto scroll
-    /* eslint-disable react-hooks/exhaustive-deps */
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isLoading]);
 
     return (
         <>
