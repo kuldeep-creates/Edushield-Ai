@@ -294,7 +294,7 @@ export default function ActivatePage() {
 
                                 {/* Staff redirect */}
                                 <div style={{ marginTop: '0.25rem', padding: '0.75rem 1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem', color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
-                                    👩‍🏫 Are you a teacher or staff member?{' '}
+                                    Are you a teacher or staff member?{' '}
                                     <br />
                                     <a href="/contact" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Contact your School Admin to get access →</a>
                                 </div>
