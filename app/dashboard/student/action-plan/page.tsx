@@ -53,7 +53,25 @@ export default function AIActionPlanPage() {
     const [userProfile, setUserProfile] = useState<StudentProfile | null>(null);
     const [studentData, setStudentData] = useState<StudentData | null>(null);
     const [missions, setMissions] = useState<Mission[]>([]);
+    const [recommendations, setRecommendations] = useState<{ subject: string; text: string; icon: string; color: string }[]>([]);
     const [isFetching, setIsFetching] = useState(true);
+    const [activeTab, setActiveTab] = useState<'suggestions' | 'missions'>('suggestions');
+    const [checkedTasks, setCheckedTasks] = useState<Record<string, boolean>>({});
+    const [committedMissions, setCommittedMissions] = useState<Record<string, boolean>>({});
+
+    const toggleTask = (missionId: string, taskIdx: number) => {
+        setCheckedTasks(prev => ({
+            ...prev,
+            [`${missionId}-${taskIdx}`]: !prev[`${missionId}-${taskIdx}`]
+        }));
+    };
+
+    const commitMission = (missionId: string) => {
+        setCommittedMissions(prev => ({
+            ...prev,
+            [missionId]: true
+        }));
+    };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -219,6 +237,25 @@ export default function AIActionPlanPage() {
         }
 
         setMissions(generated);
+
+        // --- GENERATE RAW RECOMMENDATIONS ---
+        const recs: { subject: string; text: string; icon: string; color: string }[] = [];
+        predictions.forEach(p => {
+            if (p.at_risk || p.risk_probability >= 0.40) {
+                recs.push({ subject: p.subject_name, text: p.recommendation || `Critical risk identified. Immediate action required.`, icon: 'warning', color: '#dc2626' });
+            } else if (data.subjects[p.subject_name]?.scoreMomentum <= -5) {
+                recs.push({ subject: p.subject_name, text: p.recommendation || `Momentum is dropping. Review recent material.`, icon: 'trending_down', color: '#f59e0b' });
+            }
+        });
+
+        if (data.overallAttendancePct < 85) {
+            recs.push({ subject: 'Attendance', text: 'Low attendance is negatively impacting your baseline. Try to avoid missing days to stabilize scores.', icon: 'event_busy', color: '#9333ea' });
+        }
+
+        if (recs.length === 0) {
+            recs.push({ subject: 'General Overview', text: 'All systems optimal. Keep up the consistent study habits and review material weekly. Outstanding performance.', icon: 'verified', color: '#16a34a' });
+        }
+        setRecommendations(recs);
     };
 
     if (isFetching) {
@@ -235,75 +272,147 @@ export default function AIActionPlanPage() {
 
     return (
         <div className={styles.container}>
+            <div className={styles.bgOrb1}></div>
+            <div className={styles.bgOrb2}></div>
+
             <DashboardNav role="student" searchPlaceholder="Search action plans..." />
 
             <main className={styles.mainArea}>
                 {/* Hero Box */}
                 <div className={styles.heroBox}>
-                    <div className={styles.heroContent}>
-                        <div className={styles.heroBadge}>
-                            <span className="material-symbols-outlined">psychology</span>
-                            AI Tailored Curriculum
+                    <div className={styles.heroBadge}>
+                        <span className="material-symbols-outlined">auto_awesome</span>
+                        EduShield Native Intelligence
+                    </div>
+                    <h1 className={styles.heroTitle}>Your Tactical Action Plan</h1>
+                    {/* <p className={styles.heroDesc}>
+                        A precision-engineered academic roadmap. Our AI analyzes your neuro-academic momentum to generate high-yield missions directly aimed at optimizing your future trajectory.
+                    </p> */}
+                </div>
+
+                {/* --- MODERN SWITCHABLE TABS --- */}
+                <div className={styles.tabContainer}>
+                    <button
+                        className={`${styles.tabBtn} ${activeTab === 'suggestions' ? styles.tabBtnActive : ''}`}
+                        onClick={() => setActiveTab('suggestions')}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>blur_on</span>
+                        AI Suggestions
+                    </button>
+                    <button
+                        className={`${styles.tabBtn} ${activeTab === 'missions' ? styles.tabBtnActive : ''}`}
+                        onClick={() => setActiveTab('missions')}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>track_changes</span>
+                        Tactical Missions
+                    </button>
+                </div>
+
+                <div className={styles.fullWidthSection}>
+                    {/* --- SUGGESTIONS TAB CONTENT --- */}
+                    {activeTab === 'suggestions' && (
+                        <div className={styles.tabContentFadeIn}>
+                            <div className={styles.sectionTitle}>
+                                Academic Blueprint
+                            </div>
+
+                            <div className={styles.recommendationsList}>
+                                {recommendations.map((rec, idx) => (
+                                    <div key={idx} className={styles.recItemModern} style={{ '--rec-color': rec.color } as React.CSSProperties}>
+                                        <div className={styles.recIconWrap}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: rec.color }}>{rec.icon}</span>
+                                        </div>
+                                        <div className={styles.recTextWrap}>
+                                            <h4 className={styles.recSubjectTitle}>{rec.subject}</h4>
+                                            <p className={styles.recDescText}>{rec.text}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <h1 className={styles.heroTitle}>Your Tactical Action Plan</h1>
-                        <p className={styles.heroDesc}>
-                            Based on real-time neuro-academic metrics, the EduShield Engine has generated precision missions aimed specifically at repairing your weaknesses and optimizing your future exam scores. Complete tasks to restore your global averages.
-                        </p>
-                    </div>
-                </div>
+                    )}
 
-                {/* Missions List */}
-                <div className={styles.sectionTitle}>
-                    <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '2rem' }}>target</span>
-                    Active AI Directives
-                </div>
+                    {/* --- MISSIONS TAB CONTENT --- */}
+                    {activeTab === 'missions' && (
+                        <div className={styles.tabContentFadeIn}>
+                            <div className={styles.sectionTitle}>
+                                Active Directives
+                            </div>
 
-                {missions.length === 0 ? (
-                    <div style={{ padding: '2rem', background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', color: '#64748b' }}>
-                        No tactical missions generated at this time. Maintain your current pace.
-                    </div>
-                ) : (
-                    <div className={styles.grid}>
-                        {missions.map(mission => (
-                            <div key={mission.id} className={styles.card}>
-                                <div className={styles.cardHeader}>
-                                    <div className={`${styles.iconWrap} ${mission.iconColorClass}`}>
-                                        <span className="material-symbols-outlined">{mission.icon}</span>
-                                    </div>
-                                    <div className={styles.headerInfo}>
-                                        <h2>{mission.title}</h2>
-                                        <span className={`${styles.priorityBadge} ${mission.priorityClass}`}>
-                                            {mission.priorityLabel}
-                                        </span>
-                                    </div>
+                            {missions.length === 0 ? (
+                                <div className={styles.emptyState}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '4rem', color: '#3b82f6', marginBottom: '1.5rem' }}>verified</span>
+                                    <h3>No Tactical Missions Required</h3>
+                                    <p>You are operating at peak efficiency. Maintain your current pace.</p>
                                 </div>
+                            ) : (
+                                <div className={styles.grid}>
+                                    {missions.map((mission) => (
+                                        <div key={mission.id} className={styles.card}>
+                                            <div className={styles.cardHeader}>
+                                                <div className={`${styles.iconWrap} ${mission.iconColorClass}`}>
+                                                    <span className="material-symbols-outlined">{mission.icon}</span>
+                                                </div>
+                                                <div className={styles.headerInfo}>
+                                                    <span className={`${styles.priorityBadge} ${mission.priorityClass}`}>
+                                                        {mission.priorityLabel}
+                                                    </span>
+                                                    <h2>{mission.title}</h2>
+                                                </div>
+                                            </div>
 
-                                <div className={styles.taskList}>
-                                    {mission.tasks.map((task, idx) => (
-                                        <div key={idx} className={styles.taskItem}>
-                                            <div className={styles.taskCheck}></div>
-                                            <div>
-                                                <span className={styles.taskTitle}>{task.title}</span>
-                                                <span className={styles.taskContent}>{task.desc}</span>
+                                            <div className={styles.taskList}>
+                                                {mission.tasks.map((task, idx) => (
+                                                    <div key={idx} className={styles.taskItem}>
+                                                        <div
+                                                            className={`${styles.taskCheck} ${checkedTasks[`${mission.id}-${idx}`] ? styles.taskCheckActive : ''}`}
+                                                            onClick={() => toggleTask(mission.id, idx)}
+                                                        >
+                                                            <span className={`material-symbols-outlined ${styles.checkIcon}`}>check</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className={styles.taskTitle}>{task.title}</span>
+                                                            <span className={styles.taskContent}>{task.desc}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className={styles.cardFooter}>
+                                                <div className={styles.points}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '1.5rem' }}>electric_bolt</span>
+                                                    +{mission.points} Energy
+                                                </div>
+                                                <button
+                                                    className={`${styles.actionBtn} ${committedMissions[mission.id] ? styles.actionBtnSuccess : ''}`}
+                                                    onClick={() => commitMission(mission.id)}
+                                                    disabled={committedMissions[mission.id]}
+                                                >
+                                                    {committedMissions[mission.id] ? (
+                                                        <>Committed <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>check_circle</span></>
+                                                    ) : (
+                                                        <>Commit <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>rocket_launch</span></>
+                                                    )}
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
+                            )}
+                        </div>
+                    )}
 
-                                <div className={styles.cardFooter}>
-                                    <div className={styles.points}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', color: '#f59e0b' }}>stars</span>
-                                        +{mission.points} XP
-                                    </div>
-                                    <button className={styles.actionBtn}>
-                                        Commit Mission
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>arrow_forward</span>
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                    {/* --- CHATBOT CALL TO ACTION --- */}
+                    <div className={styles.chatbotCTA}>
+                        <div className={styles.chatbotText}>
+                            <h3>Hyper-Personalization Awaits</h3>
+                            <p>These heuristics are generated instantly securely on client-side via AI predictive analytics. For dynamic dialogue, context-aware tutoring, or to ask a specific question, launch the EduShield Agent directly below.</p>
+                        </div>
+                        <button className={styles.chatbotActionBtn} onClick={() => alert("Opening Chatbot Simulator...")}>
+                            Talk to AI Assistant
+                        </button>
                     </div>
-                )}
+                </div>
             </main>
         </div>
     );

@@ -194,6 +194,26 @@ export default function MyPerformancePage() {
     if (highRiskCount > 0) quickAction = `You have ${highRiskCount} subject(s) requiring immediate attention to avoid failure.`;
     else if (Number(averageMomentum) < -2) quickAction = "Your general momentum is slipping. Review recent topics to restabilize.";
 
+    // Badge Logic
+    const earnedBadges = [];
+    if (studentData?.overallAttendancePct >= 95) {
+        earnedBadges.push({ id: 'att', name: 'Attendance Elite', icon: 'event_available', color: '#10b981', desc: 'Over 95% attendance' });
+    }
+    if (Number(averageMomentum) > 0) {
+        earnedBadges.push({ id: 'mom', name: 'Momentum Builder', icon: 'trending_up', color: '#f59e0b', desc: 'Positive recent growth' });
+    }
+    const highSubjects = subjectList.filter(s => s.data.latestScore >= 90);
+    if (highSubjects.length > 0) {
+        earnedBadges.push({ id: 'mas', name: 'Scholarly Master', icon: 'workspace_premium', color: '#8b5cf6', desc: `90+ Score Reached` });
+    }
+    const consistentSubjects = subjectList.filter(s => s.data.consistencyScore >= 90);
+    if (consistentSubjects.length > 0) {
+        earnedBadges.push({ id: 'consist', name: 'Consistency King', icon: 'bolt', color: '#3b82f6', desc: 'Stellar stability' });
+    }
+    if (earnedBadges.length === 0) {
+        earnedBadges.push({ id: 'start', name: 'Rising Star', icon: 'star', color: '#64748b', desc: 'Keep learning to earn more' });
+    }
+
     return (
         <div className={styles.container}>
             <DashboardNav role="student" searchPlaceholder="Search subjects..." />
@@ -234,7 +254,24 @@ export default function MyPerformancePage() {
                     </div>
                 </div>
 
-                <div className={styles.sectionHeader}>
+                <div className={styles.sectionHeader} style={{ marginTop: '2rem' }}>
+                    <h2><span className="material-symbols-outlined">emoji_events</span> Honors & Achievements</h2>
+                </div>
+                <div className={styles.badgesContainer}>
+                    {earnedBadges.map(badge => (
+                        <div key={badge.id} className={styles.badgeBox} style={{ '--badge-hex': badge.color } as React.CSSProperties}>
+                            <div className={styles.badgeIconWrap} style={{ background: badge.color }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: 'white' }}>{badge.icon}</span>
+                            </div>
+                            <div className={styles.badgeInfo}>
+                                <h4>{badge.name}</h4>
+                                <p>{badge.desc}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className={styles.sectionHeader} style={{ marginTop: '2rem' }}>
                     <h2><span className="material-symbols-outlined">radar</span> Advanced Analytics Grid</h2>
                 </div>
 
