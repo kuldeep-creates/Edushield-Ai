@@ -19,7 +19,7 @@ interface DashboardNavProps {
 const roleLinks: Record<string, NavLink[]> = {
     student: [
         { label: 'Dashboard', href: '/dashboard/student' },
-        { label: 'My Performace', href: '#' },
+        { label: 'My Performance', href: '/dashboard/student/performance' },
         { label: 'AI Action Plan', href: '#' },
         { label: 'Schedule Help', href: '#' },
     ],
