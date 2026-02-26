@@ -8,13 +8,8 @@ import { auth, db } from '@/lib/firebase';
 import styles from './page.module.css';
 import DashboardNav from '@/components/DashboardNav';
 import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    BarChart, Bar, Legend
 } from 'recharts';
 
 export default function StudentDashboard() {
@@ -22,31 +17,30 @@ export default function StudentDashboard() {
     const [userProfile, setUserProfile] = useState<any>(null);
     const [studentData, setStudentData] = useState<any>(null);
     const [modelPredictions, setModelPredictions] = useState<any[]>([]);
-    const [isFetchingModel, setIsFetchingModel] = useState(true);
+    const [isFetching, setIsFetching] = useState(true);
+    const [selectedSubject, setSelectedSubject] = useState<string>('Average');
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // Fetch user profile to get regNo
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
                     if (userDoc.exists()) {
                         const profile = userDoc.data();
                         setUserProfile(profile);
 
-                        // Fetch real student data using regNo (Student_ID)
                         if (profile.regNo) {
                             const dataDoc = await getDoc(doc(db, 'studentData', profile.regNo));
                             if (dataDoc.exists()) {
                                 const sData = dataDoc.data();
                                 setStudentData(sData);
 
-                                // Transform the fetched data for the EduShield AI Model
+                                // Fetch predictions
                                 const subjectKeys = Object.keys(sData.subjects || {});
                                 const records = subjectKeys.map(subName => {
                                     const sub = sData.subjects[subName];
                                     return {
-                                        student_id: sData.studentId,
+                                        student_id: sData.studentId || profile.regNo,
                                         subject_name: subName,
                                         exam_1: sub.exam1 || 0,
                                         exam_2: sub.exam2 || 0,
@@ -59,17 +53,13 @@ export default function StudentDashboard() {
                                         overall_attendance_pct: sData.overallAttendancePct || 0,
                                         total_days_absent: sData.totalDaysAbsent || 0,
                                         max_absent_streak_length: sData.maxAbsentStreakLength || 0,
-                                        days_enrolled: 180, // Default passing value
-                                        discipline_flags: 0
+                                        days_enrolled: 180,
+                                        discipline_flags: sData.disciplineFlags || 0
                                     };
                                 });
 
-                                // Send the REAL batch of data to the Google Cloud Run Model
                                 const cloudPayload = {
-                                    records: records.length > 0 ? records : [
-                                        // Fallback if records are empty for some reason
-                                        { student_id: profile.regNo, subject_name: "General", exam_1: 50, latest_score: 50, score_momentum: 0, overall_attendance_pct: 80, total_days_absent: 5, max_absent_streak_length: 2 }
-                                    ],
+                                    records: records.length > 0 ? records : [{ student_id: profile.regNo, subject_name: "General", exam_1: 50, latest_score: 50, score_momentum: 0, overall_attendance_pct: 80, total_days_absent: 5, max_absent_streak_length: 2 }],
                                     apply_loophole_patches: true,
                                     holiday_factor: 1.0
                                 };
@@ -81,384 +71,403 @@ export default function StudentDashboard() {
                                 })
                                     .then(res => res.json())
                                     .then(data => {
-                                        if (data && data.results) {
-                                            setModelPredictions(data.results);
-                                        }
-                                        setIsFetchingModel(false);
+                                        if (data?.results) setModelPredictions(data.results);
                                     })
-                                    .catch(err => {
-                                        console.error("AI Model Fetch Error:", err);
-                                        setIsFetchingModel(false);
-                                    });
-
+                                    .catch(err => console.error("AI Error:", err))
+                                    .finally(() => setIsFetching(false));
                             } else {
-                                console.log("No academic data found for this Student ID in DB.");
-                                setIsFetchingModel(false);
+                                setIsFetching(false);
                             }
                         } else {
-                            setIsFetchingModel(false);
+                            setIsFetching(false);
                         }
                     } else {
                         router.push('/login');
                     }
                 } catch (err) {
-                    console.error("Error fetching data:", err);
-                    setIsFetchingModel(false);
+                    console.error("Data error:", err);
+                    setIsFetching(false);
                 }
             } else {
                 router.push('/login');
             }
         });
-
         return () => unsubscribe();
     }, [router]);
 
-    const getPrediction = (subject: string) => {
-        // Soft match since names might be slightly different like "Mathematics" vs "Math"
-        return modelPredictions.find(p => p.subject_name.toLowerCase().includes(subject.toLowerCase()));
-    };
+    if (isFetching) {
+        return <div className={styles.loadingScreen}>EduShield AI Generating Dashboard...</div>;
+    }
 
-    const overallRisk = modelPredictions.reduce((acc, p) => acc + (p.risk_probability || 0), 0) / (modelPredictions.length || 1);
+    if (!studentData) {
+        return <div className={styles.loadingScreen}>No academic data found.</div>;
+    }
 
+    // --- 1. A. Academic Risk Engine Calculations ---
+    // Max risk across all subjects to denote overall risk category
+    const maxRiskProb = modelPredictions.length > 0 ? Math.max(...modelPredictions.map(p => p.risk_probability)) : 0;
+    const academicRiskScore = Math.round(maxRiskProb * 100);
+    const academicHealthIndex = 100 - academicRiskScore;
+
+    let riskCategory = "Healthy";
+    if (academicRiskScore > 75) riskCategory = "Critical";
+    else if (academicRiskScore > 40) riskCategory = "Caution";
+
+    // --- 1. B. Weak Subject Detection ---
+    const weakSubjects = modelPredictions
+        .filter(p => p.risk_probability > 0.4)
+        .sort((a, b) => b.risk_probability - a.risk_probability);
+
+    // --- 1. C. Performance Trend Analysis (Graph Data) ---
+    const subs = Object.values(studentData.subjects || {}) as any[];
+    const subKeys = Object.keys(studentData.subjects || {});
+
+    // Dynamically discover all actual exams taken (no dummy data or hardcoded limits)
+    const availableExams = new Set<number>();
+    subs.forEach(sub => {
+        Object.keys(sub).forEach(key => {
+            const match = key.match(/^exam_?(\d+)$/i);
+            if (match && sub[key] !== undefined && sub[key] !== null && sub[key] !== "") {
+                availableExams.add(parseInt(match[1], 10));
+            }
+        });
+    });
+
+    const sortedExams = Array.from(availableExams).sort((a, b) => a - b);
+
+    const trendData = sortedExams.map(examNum => {
+        let score = 0;
+
+        if (selectedSubject === 'Average') {
+            let total = 0;
+            let count = 0;
+            subs.forEach(s => {
+                const val = s[`exam${examNum}`] ?? s[`exam_${examNum}`] ?? s[`Exam_${examNum}`];
+                if (val !== undefined && val !== null && val !== "") {
+                    total += Number(val);
+                    count++;
+                }
+            });
+            score = count > 0 ? Math.round(total / count) : 0;
+        } else {
+            const specificSub = studentData.subjects[selectedSubject];
+            if (specificSub) {
+                const val = specificSub[`exam${examNum}`] ?? specificSub[`exam_${examNum}`] ?? specificSub[`Exam_${examNum}`];
+                score = val !== undefined && val !== null && val !== "" ? Number(val) : 0;
+            }
+        }
+
+        return {
+            name: `Ex${examNum}`,
+            score: score
+        };
+    });
+
+    // --- 1. D. Consistency Score ---
+    // Calculate variance of average scores to find high fluctuations
+    let consistencyScore = 100;
+    if (trendData.length > 1) {
+        const scores = trendData.map(d => d.score);
+        const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const variance = scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length;
+        const stdDev = Math.sqrt(variance);
+        // Map stdDev to consistency score (0 stdDev = 100%, high stdDev = low consistency)
+        consistencyScore = Math.max(0, 100 - Math.round(stdDev * 3));
+    }
+
+    // --- 1. E. AI Personalized Action Plan ---
+    let actionPlan = [];
+    if (weakSubjects.length > 0) {
+        actionPlan.push({ icon: 'menu_book', title: `Focus on ${weakSubjects[0].subject_name}`, desc: `Review your lowest scoring topics in ${weakSubjects[0].subject_name} immediately.` });
+    }
+    if (weakSubjects.length > 1) {
+        actionPlan.push({ icon: 'schedule', title: `Allocate time for ${weakSubjects[1].subject_name}`, desc: `Your momentum is dropping here. Dedicate 30 mins extra daily.` });
+    } else if (consistencyScore < 70) {
+        actionPlan.push({ icon: 'trending_up', title: `Stabilize your study routine`, desc: `Your scores fluctuate. Try to maintain a consistent daily study schedule.` });
+    } else {
+        actionPlan.push({ icon: 'emoji_events', title: `Maintain your momentum`, desc: `You are doing great! Keep up the current study habits.` });
+    }
+    if (studentData.overallAttendancePct < 90) {
+        actionPlan.push({ icon: 'event_busy', title: `Improve Attendance`, desc: `Missing classes impacts grades. Try to avoid unnecessary absences.` });
+    } else {
+        actionPlan.push({ icon: 'groups', title: `Help a Peer`, desc: `Your attendance and scores are strong. Consider forming a study group to cement your knowledge.` });
+    }
 
     return (
         <div className={styles.container}>
-            {/* ---------- NAVIGATION BAR ---------- */}
-            <DashboardNav role="student" searchPlaceholder="Search courses, assignments..." />
+            <DashboardNav role="student" searchPlaceholder="Search metrics..." />
 
             <div className={styles.mainArea}>
-                {/* ---------- LEFT SIDEBAR ---------- */}
+                {/* ---------- STUDENT 360° PROFILE (Sidebar) ---------- */}
                 <aside className={styles.sidebar}>
-                    {/* Profile Summary */}
-                    <div className={styles.sidebarCard}>
-                        <div className={styles.profileSummary}>
-                            <div className={styles.avatarLargeWrap}>
-                                <div className={styles.avatarLarge}></div>
-                                <div className={styles.statusIndicator}>
-                                    <span className="material-symbols-outlined">check</span>
+                    <div className={styles.card}>
+                        <div className={styles.profileHero}>
+                            <div className={styles.avatarWrap}>
+                                <div className={styles.avatarInner}>
+                                    {studentData?.name ? studentData.name.charAt(0) : 'S'}
                                 </div>
                             </div>
-                            <h2 className={styles.studentName}>{studentData ? studentData.name : (userProfile ? userProfile.regNo : 'Loading...')}</h2>
-                            <span className={styles.studentMeta}>{studentData ? `Class ${studentData.class} • ${studentData.stream}` : 'Fetching Details...'}</span>
-                        </div>
+                            <div className={styles.studentInfo}>
+                                <h2>{studentData.name || userProfile?.regNo}</h2>
+                                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.2rem', fontFamily: 'monospace' }}>ID: {userProfile?.regNo}</p>
+                                <p>Class {studentData.class || 'N/A'} • {studentData.stream || 'General'}</p>
+                                <p style={{ marginTop: '0.2rem', color: '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
+                                    {studentData.schoolName || 'EDUSHIELD ACADEMY'}
+                                </p>
 
-                        {/* Navigation Menu */}
-                        <nav className={styles.sideNav}>
-                            <a href="#" className={`${styles.sideNavItem} ${styles.sideNavItemActive}`}>
-                                <span className={`material-symbols-outlined ${styles.sideNavItemIcon}`}>grid_view</span>
-                                Overview
-                            </a>
-                            <a href="#" className={styles.sideNavItem}>
-                                <span className={`material-symbols-outlined ${styles.sideNavItemIcon}`}>school</span>
-                                My Grades
-                            </a>
-                            <a href="#" className={styles.sideNavItem}>
-                                <span className={`material-symbols-outlined ${styles.sideNavItemIcon}`}>calendar_today</span>
-                                Schedule
-                            </a>
-                            <a href="#" className={styles.sideNavItem}>
-                                <span className={`material-symbols-outlined ${styles.sideNavItemIcon}`}>insights</span>
-                                Reports
-                            </a>
-                        </nav>
-                    </div>
+                                {/* Social Links */}
+                                {(() => {
+                                    const socials = studentData?.socialLinks || userProfile?.socialLinks || {};
+                                    const email = socials.email || socials.gmail;
+                                    const github = socials.github;
+                                    const linkedin = socials.linkedin;
+                                    const other = socials.other || socials.website;
 
-                    {/* Academic Health Score */}
-                    <div className={styles.sidebarCard}>
-                        <div className={styles.healthHeader}>
-                            <span className={styles.healthTitle}>Academic Health</span>
-                            <span className={styles.healthBadge} style={{
-                                backgroundColor: isFetchingModel ? 'var(--slate-800)' : (overallRisk > 0.4 ? 'var(--warning-dark)' : 'var(--success-dark)'),
-                                color: isFetchingModel ? 'var(--slate-400)' : (overallRisk > 0.4 ? 'var(--warning)' : 'var(--success)')
-                            }}>
-                                {isFetchingModel ? 'Analyzing...' : (overallRisk > 0.4 ? 'At Risk' : 'Low Risk')}
-                            </span>
-                        </div>
-                        <div className={styles.healthScoreWrap}>
-                            <div className={styles.healthScore}>
-                                {isFetchingModel ? '--' : Math.round(100 - (overallRisk * 100))}
+                                    if (!email && !github && !linkedin && !other) return null;
+
+                                    return (
+                                        <div className={styles.socialLinks}>
+                                            {email && (
+                                                <a href={email.startsWith('mailto:') ? email : `mailto:${email}`} target="_blank" rel="noreferrer" className={styles.socialIcon} title="Email">
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>mail</span>
+                                                </a>
+                                            )}
+                                            {github && (
+                                                <a href={github} target="_blank" rel="noreferrer" className={styles.socialIcon} title="GitHub">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z" />
+                                                    </svg>
+                                                </a>
+                                            )}
+                                            {linkedin && (
+                                                <a href={linkedin} target="_blank" rel="noreferrer" className={styles.socialIcon} title="LinkedIn">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                                                    </svg>
+                                                </a>
+                                            )}
+                                            {other && (
+                                                <a href={other} target="_blank" rel="noreferrer" className={styles.socialIcon} title="Website">
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>language</span>
+                                                </a>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
-                        <p className={styles.healthDesc}>
-                            {isFetchingModel ? 'EduShield AI is analyzing your performance...' :
-                                (overallRisk > 0.4 ? 'EduShield AI detected some risk factors in recent performance. Check your personalized plan.' : 'You\'re doing great! Keep it up to reach the honor roll.')}
-                        </p>
+
+                        <div className={styles.statsGrid}>
+                            <div className={styles.statItem}>
+                                <div className={styles.statLabel}>Attendance</div>
+                                <div className={styles.statValue}>{studentData.overallAttendancePct || 0}%</div>
+                            </div>
+                            <div className={styles.statItem}>
+                                <div className={styles.statLabel}>Behavior</div>
+                                <div className={styles.statValue}>{studentData.disciplineFlags || 0} Flags</div>
+                            </div>
+                            <div className={styles.statItem}>
+                                <div className={styles.statLabel}>Days Absent</div>
+                                <div className={styles.statValue}>{studentData.totalDaysAbsent || 0}</div>
+                            </div>
+                        </div>
+
+                        {/* <div className={styles.riskGaugeArea} style={{ paddingTop: '1.5rem', marginTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                            <span className={`${styles.riskLabel} ${styles[riskCategory]}`}>
+                                {riskCategory}
+                            </span>
+                        </div> */}
                     </div>
 
-                    {/* CTA Needs Help */}
-                    <div className={styles.ctaCard}>
-                        <h3 className={styles.ctaTitle}>Need Help?</h3>
-                        <p className={styles.ctaDesc}>
-                            Schedule a session with a tutor or chat with AI assistant.
-                        </p>
-                        <a href="https://gemini.google.com/u/2/app/e2aa1e35bc8fc5cf" target="_blank" rel="noopener noreferrer" className={styles.ctaBtn}>Get Support</a>
+                    {/* ACADEMIC RISK ENGINE SUMMARY */}
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader} style={{ marginBottom: 0 }}>
+                            <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
+                                <span className="material-symbols-outlined">donut_large</span> Academic Risk
+                            </h3>
+                        </div>
+                        <div className={styles.riskGaugeArea}>
+                            <div className={`${styles.riskScore} ${styles[riskCategory]}`}>
+                                {academicRiskScore}
+                            </div>
+                            <div className={styles.statLabel}>Risk Score (0-100)</div>
+
+                            <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+                                <span className={`${styles.riskLabel} ${styles[riskCategory]}`}>
+                                    {riskCategory}
+                                </span>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '0.5rem', textAlign: 'center' }}>
+                            <div className={styles.statLabel}>Health Index</div>
+                            <div className={styles.statValue} style={{ color: 'var(--primary)' }}>{academicHealthIndex}/100</div>
+                        </div>
                     </div>
+
+                    {/* WEAK SUBJECT DETECTION - Prototype specific box */}
+                    {/* <div className={styles.card} style={{ backgroundColor: '#e2e8f0' }}>
+                        <h3 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '1rem', color: '#1e293b' }}>
+                            weak subjects
+                        </h3>
+                        {weakSubjects.length === 0 ? (
+                            <p style={{ textAlign: 'center' }}>None</p>
+                        ) : (
+                            weakSubjects.map((sub, idx) => (
+                                <div key={idx} style={{ textAlign: 'center', fontWeight: 'bold' }}>{sub.subject_name}</div>
+                            ))
+                        )}
+                    </div> */}
                 </aside>
 
-                {/* ---------- MAIN CONTENT ---------- */}
+                {/* ---------- MAIN DIAGNOSTICS CONTENT ---------- */}
                 <main className={styles.content}>
+                    {/* <div>
+                        <h1 className={styles.pageTitle}>Dashboard Diagnostics</h1>
+                        <p className={styles.pageSubtitle}>EduShield AI realtime engine analysis for the current academic term.</p>
+                    </div> */}
 
-                    {/* Header */}
-                    <div className={styles.contentHeader}>
-                        <div>
-                            <h1 className={styles.pageTitle}>Academic Overview</h1>
-                            <p className={styles.pageSubtitle}>Here is what&apos;s happening with your courses today.</p>
+                    <div className={styles.diagnosticGrid}>
+                        {/* AI ACTIONABLE ROADMAP - Prototype match
+                        <div className={styles.card} style={{ gridColumn: '1 / -1', backgroundColor: '#e2e8f0', minHeight: '300px' }}>
+                            <h3 className={styles.sectionTitle} style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#1e293b' }}>
+                                Suggestions to improve academics
+                            </h3>
+                            <div className={styles.actionList}>
+                                {actionPlan.map((action, idx) => (
+                                    <div key={idx} className={styles.actionItem} style={{ marginBottom: '0.5rem', backgroundColor: '#f1f5f9', border: 'none', padding: '0.75rem', borderRadius: '0.25rem' }}>
+                                        <div className={styles.actionText}>
+                                            <p style={{ margin: 0, color: '#334155' }}>• {action.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div> */}
+
+                        {/* 1. B. WEAK SUBJECT DETECTION */}
+                        <div className={styles.card}>
+                            <div className={styles.cardHeader}>
+                                <div>
+                                    <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
+                                        <span className="material-symbols-outlined" style={{ color: 'var(--critical)' }}>troubleshoot</span>
+                                        Weak Subject Detection
+                                    </h3>
+                                </div>
+                            </div>
+
+                            {weakSubjects.length === 0 ? (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: '#10b981', opacity: 0.5 }}>check_circle</span>
+                                    <p>No high-risk subjects detected. Perfect track record!</p>
+                                </div>
+                            ) : (
+                                weakSubjects.map((subject, idx) => (
+                                    <div key={idx} className={styles.weakSubjectItem}>
+                                        <span className={`material-symbols-outlined ${styles.weakIcon}`}>priority_high</span>
+                                        <div className={styles.weakDetails}>
+                                            <h4>{subject.subject_name}</h4>
+                                            <p>{subject.recommendation}</p>
+                                            <div style={{ marginTop: '0.4rem' }}>
+                                                <span className={`${styles.flexBadge} ${subject.at_risk ? styles.badgeCritical : styles.badgeSuccess}`}>
+                                                    {subject.risk_label}
+                                                </span>
+                                                {subject.patches_applied?.map((patch: string, i: number) => (
+                                                    <span key={i} className={`${styles.flexBadge} ${styles.badgeWarning}`} style={{ marginLeft: '0.5rem' }} title={patch}>
+                                                        Patch trigger
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
-                        <select className={styles.termSelect}>
-                            <option>Current Semester</option>
-                            <option>Last Semester</option>
-                        </select>
-                    </div>
 
-                    {/* Personalized Improvement Plan */}
-                    <div className={styles.planCard}>
-                        <div className={styles.planHeader}>
-                            <span className={`material-symbols-outlined ${styles.planIcon}`}>auto_awesome</span>
-                            <span className={styles.planTitle}>Your Personalized Improvement Plan</span>
-                        </div>
-                        <div className={styles.planGrid}>
-                            <div className={styles.planItem}>
-                                <span className={`material-symbols-outlined ${styles.planItemIcon}`} style={{ color: 'var(--warning)' }}>priority_high</span>
-                                <div className={styles.planItemContent}>
-                                    <h4>Focus on Algebra</h4>
-                                    <p>Review quadratic equations before Friday&apos;s quiz.</p>
-                                </div>
+                        {/* 1. D. CONSISTENCY SCORE */}
+                        <div className={styles.card}>
+                            <div className={styles.cardHeader}>
+                                <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
+                                    <span className="material-symbols-outlined" style={{ color: 'var(--accent)' }}>published_with_changes</span>
+                                    Consistency Score
+                                </h3>
                             </div>
-                            <div className={styles.planItem}>
-                                <span className={`material-symbols-outlined ${styles.planItemIcon}`} style={{ color: 'var(--accent)' }}>edit_document</span>
-                                <div className={styles.planItemContent}>
-                                    <h4>Physics Lab Report</h4>
-                                    <p>Draft conclusion section. Due in 2 days.</p>
+                            <div className={styles.riskGaugeArea} style={{ paddingTop: '0' }}>
+                                <div className={styles.riskScore} style={{ color: 'var(--primary)' }}>
+                                    {consistencyScore}%
                                 </div>
-                            </div>
-                            <div className={styles.planItem}>
-                                <span className={`material-symbols-outlined ${styles.planItemIcon}`} style={{ color: 'var(--success)' }}>trending_up</span>
-                                <div className={styles.planItemContent}>
-                                    <h4>Maintain History Streak</h4>
-                                    <p>You scored 95% last time! Keep the momentum.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Subject Performance */}
-                    <div>
-                        <div className={styles.sectionHeader}>
-                            <h2 className={styles.sectionTitle}>Subject Performance</h2>
-                            <a href="#" className={styles.sectionLink}>
-                                View all subjects
-                                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>arrow_forward</span>
-                            </a>
-                        </div>
-                        <div className={styles.subjectGrid}>
-
-                            {/* Math Card */}
-                            <div className={styles.subjectCard}>
-                                <div className={styles.subjectHeader}>
-                                    <div className={styles.subjectInfo}>
-                                        <div className={`${styles.subjectIconWrap} ${styles.math}`}>
-                                            <span className="material-symbols-outlined">calculate</span>
-                                        </div>
-                                        <div className={styles.subjectDetails}>
-                                            <h3>Mathematics</h3>
-                                            <p>Next: Algebra II Quiz</p>
-                                        </div>
-                                    </div>
-                                    <div className={`${styles.trendBadge} ${styles.up}`}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>trending_up</span>
-                                        +5%
-                                    </div>
-                                </div>
-                                {getPrediction("Mathematics") && (
-                                    <div style={{ marginTop: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: getPrediction("Mathematics")?.at_risk ? 'var(--warning)' : 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--slate-800)', padding: '0.5rem 0.75rem', borderRadius: '0.5rem' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>auto_awesome</span>
-                                        EduShield AI: {getPrediction("Mathematics")?.risk_label} ({Math.round(getPrediction("Mathematics")?.risk_probability! * 100)}% Risk)
-                                    </div>
-                                )}
-                                <div className={styles.subjectScoreArea}>
-                                    <div className={styles.scoreGroup}>
-                                        <span className={styles.label}>CURRENT GRADE</span>
-                                        <span className={styles.value}>{studentData?.subjects?.['Mathematics']?.latestScore || 92}</span>
-                                        <span className={styles.slash}>/100</span>
-                                    </div>
-                                    <div className={styles.miniChart}>
-                                        {[1, 2, 3, 4, 5, 6].map(i => {
-                                            const score = studentData?.subjects?.['Mathematics']?.[`exam${i}`] || 0;
-                                            return score > 0 ? <div key={i} className={`${styles.bar} ${styles.math}`} style={{ height: `${score}%`, opacity: 0.3 + (i * 0.12) }}></div> : null;
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Physics Card */}
-                            <div className={styles.subjectCard}>
-                                <div className={styles.subjectHeader}>
-                                    <div className={styles.subjectInfo}>
-                                        <div className={`${styles.subjectIconWrap} ${styles.physics}`}>
-                                            <span className="material-symbols-outlined">science</span>
-                                        </div>
-                                        <div className={styles.subjectDetails}>
-                                            <h3>Science</h3>
-                                            <p>Next: Lab Report</p>
-                                        </div>
-                                    </div>
-                                    <div className={`${styles.trendBadge} ${styles.flat}`}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>trending_flat</span>
-                                        {studentData?.subjects?.['Science']?.scoreMomentum || 0}%
-                                    </div>
-                                </div>
-                                {getPrediction("Science") && (
-                                    <div style={{ marginTop: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: getPrediction("Science")?.at_risk ? 'var(--warning)' : 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--slate-800)', padding: '0.5rem 0.75rem', borderRadius: '0.5rem' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>auto_awesome</span>
-                                        EduShield AI: {getPrediction("Science")?.risk_label} ({Math.round(getPrediction("Science")?.risk_probability! * 100)}% Risk)
-                                    </div>
-                                )}
-                                <div className={styles.subjectScoreArea}>
-                                    <div className={styles.scoreGroup}>
-                                        <span className={styles.label}>CURRENT GRADE</span>
-                                        <span className={styles.value}>{studentData?.subjects?.['Science']?.latestScore || (studentData?.subjects?.['Physics']?.latestScore || 84)}</span>
-                                        <span className={styles.slash}>/100</span>
-                                    </div>
-                                    <div className={styles.miniChart}>
-                                        {[1, 2, 3, 4, 5, 6].map(i => {
-                                            const score = studentData?.subjects?.['Science']?.[`exam${i}`] || studentData?.subjects?.['Physics']?.[`exam${i}`] || 0;
-                                            return score > 0 ? <div key={i} className={`${styles.bar} ${styles.physics}`} style={{ height: `${score}%`, opacity: 0.3 + (i * 0.12) }}></div> : null;
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Literature Card */}
-                            <div className={styles.subjectCard}>
-                                <div className={styles.subjectHeader}>
-                                    <div className={styles.subjectInfo}>
-                                        <div className={`${styles.subjectIconWrap} ${styles.literature}`}>
-                                            <span className="material-symbols-outlined">menu_book</span>
-                                        </div>
-                                        <div className={styles.subjectDetails}>
-                                            <h3>English</h3>
-                                            <p>Next: Essay Draft</p>
-                                        </div>
-                                    </div>
-                                    <div className={`${styles.trendBadge} ${styles.down}`}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>trending_down</span>
-                                        {studentData?.subjects?.['English']?.scoreMomentum || -3}%
-                                    </div>
-                                </div>
-                                {getPrediction("English") && (
-                                    <div style={{ marginTop: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: getPrediction("English")?.at_risk ? 'var(--warning)' : 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--slate-800)', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: getPrediction("English")?.at_risk ? '1px solid var(--warning-dark)' : 'none' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>auto_awesome</span>
-                                        EduShield AI: {getPrediction("English")?.risk_label} ({Math.round(getPrediction("English")?.risk_probability! * 100)}% Risk)
-                                    </div>
-                                )}
-                                <div className={styles.subjectScoreArea}>
-                                    <div className={styles.scoreGroup}>
-                                        <span className={styles.label}>CURRENT GRADE</span>
-                                        <span className={styles.value}>{studentData?.subjects?.['English']?.latestScore || (studentData?.subjects?.['Literature']?.latestScore || 78)}</span>
-                                        <span className={styles.slash}>/100</span>
-                                    </div>
-                                    <div className={styles.miniChart}>
-                                        {[1, 2, 3, 4, 5, 6].map(i => {
-                                            const score = studentData?.subjects?.['English']?.[`exam${i}`] || studentData?.subjects?.['Literature']?.[`exam${i}`] || 0;
-                                            return score > 0 ? <div key={i} className={`${styles.bar} ${styles.literature}`} style={{ height: `${score}%`, opacity: 0.3 + (i * 0.12) }}></div> : null;
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    {/* Trend Chart */}
-                    <div className={styles.chartCard}>
-                        <div className={styles.chartHeader}>
-                            <div className={styles.chartTitles}>
-                                <h3>Performance Trend</h3>
-                                <p>Average scores over last 6 exams across all subjects.</p>
-                            </div>
-                            <div className={styles.chartTabs}>
-                                <span className={`${styles.chartTab} ${styles.active}`}>Tests</span>
-                                <span className={styles.chartTab}>Assignments</span>
+                                <div className={styles.statLabel}>Performance Stability Index</div>
+                                <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#334155', marginTop: '1rem', lineHeight: '1.5' }}>
+                                    {consistencyScore > 80 ? "Exhibits high stability with minimal fluctuations across exams. A reliable learning pattern." :
+                                        consistencyScore > 50 ? "Shows moderate fluctuations. Focus on maintaining a steady study routine to prevent unexpected score drops." :
+                                            "High fluctuation detected. The AI notes alternating high and low performance peaks."}
+                                </p>
                             </div>
                         </div>
 
-                        <div className={styles.chartArea}>
-                            {(() => {
-                                const subs = studentData?.subjects ? (Object.values(studentData.subjects) as any[]) : [];
-                                const numS = subs.length || 1;
-
-                                // Determine the last exam index with any data
-                                const lastExamIdx = [1, 2, 3, 4, 5, 6].reduce((found, i) =>
-                                    subs.some(s => (s[`exam${i}`] || 0) > 0) ? i : found, 1
-                                );
-
-                                // Format data for Recharts
-                                const chartData = Array.from({ length: lastExamIdx }, (_, i) => {
-                                    const examNum = i + 1;
-                                    const total = subs.reduce((acc, s) => acc + (s[`exam${examNum}`] || 0), 0);
-                                    const avg = Math.round(total / numS);
-                                    return {
-                                        name: examNum === lastExamIdx ? 'Latest' : `Exam ${examNum}`,
-                                        score: avg,
-                                        fullName: `Exam ${examNum}`
-                                    };
-                                });
-
-                                if (chartData.length === 0) return <div className={styles.noData}>No performance data available.</div>;
-
-                                return (
+                        {/* 1. C. PERFORMANCE TREND ANALYSIS */}
+                        <div className={`${styles.card} ${styles.chartCard}`} style={{ gridColumn: '1 / -1' }}>
+                            <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
+                                    <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>monitoring</span>
+                                    Performance Trend Analysis
+                                </h3>
+                                <select
+                                    value={selectedSubject}
+                                    onChange={(e) => setSelectedSubject(e.target.value)}
+                                    style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', backgroundColor: '#f8fafc', color: '#334155', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
+                                >
+                                    <option value="Average">Overall Average</option>
+                                    {subKeys.map(key => (
+                                        <option key={key} value={key}>{key}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className={styles.chartContainer}>
+                                {trendData.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                             <defs>
-                                                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
+                                                <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4} />
+                                                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--slate-100)" />
-                                            <XAxis
-                                                dataKey="name"
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fill: 'var(--slate-400)', fontSize: 12, fontWeight: 600 }}
-                                                dy={10}
-                                            />
-                                            <YAxis
-                                                domain={[0, 100]}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fill: 'var(--slate-400)', fontSize: 12 }}
-                                            />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                                            <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                                             <Tooltip
-                                                contentStyle={{
-                                                    backgroundColor: '#ffffff',
-                                                    borderRadius: '12px',
-                                                    border: 'none',
-                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                                                }}
-                                                itemStyle={{ color: 'var(--accent)', fontWeight: 700 }}
-                                                labelStyle={{ color: 'var(--slate-500)', marginBottom: '4px' }}
+                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
                                             />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="score"
-                                                stroke="var(--accent)"
-                                                strokeWidth={3}
-                                                fillOpacity={1}
-                                                fill="url(#colorScore)"
-                                                animationDuration={1500}
-                                                dot={{ r: 4, fill: '#fff', stroke: 'var(--accent)', strokeWidth: 2 }}
-                                                activeDot={{ r: 6, strokeWidth: 0 }}
-                                            />
+                                            <Area type="monotone" dataKey="score" name={selectedSubject === 'Average' ? 'Average Marks' : `${selectedSubject} Marks`} stroke="var(--primary)" strokeWidth={3} fill="url(#colorAvg)" />
                                         </AreaChart>
                                     </ResponsiveContainer>
-                                );
-                            })()}
+                                ) : (
+                                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No trend data available.</div>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
+
+
+                    </div>
                 </main>
             </div>
+
+            {/* ---------- DASHBOARD FOOTER ---------- */}
+            <footer className={styles.footer}>
+                <div className={styles.footerContent}>
+                    <div className={styles.footerLeft}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>shield</span>
+                        <span style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>EduShield AI</span>
+                        <span style={{ color: '#94a3b8', margin: '0 0.5rem' }}>|</span>
+                        <span style={{ color: '#64748b' }}>&copy; {new Date().getFullYear()} All rights reserved.</span>
+                    </div>
+                    <div className={styles.footerLinks}>
+                        <a href="/support" className={styles.footerLink}>Help Center</a>
+                        <a href="/privacy" className={styles.footerLink}>Privacy Policy</a>
+                        <a href="/terms" className={styles.footerLink}>Terms of Service</a>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }

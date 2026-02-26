@@ -19,9 +19,9 @@ interface DashboardNavProps {
 const roleLinks: Record<string, NavLink[]> = {
     student: [
         { label: 'Dashboard', href: '/dashboard/student' },
-        { label: 'Courses', href: '#' },
-        { label: 'Assignments', href: '#' },
-        { label: 'Plan', href: '#' },
+        { label: 'My Performace', href: '#' },
+        { label: 'AI Action Plan', href: '#' },
+        { label: 'Schedule Help', href: '#' },
     ],
     parent: [
         { label: 'Dashboard', href: '/dashboard/parent' },
@@ -99,29 +99,23 @@ export default function DashboardNav({ role, userName, searchPlaceholder = 'Sear
                         <span className={styles.badge}></span>
                     </button>
 
-                    {/* AI Assistant Chatbot */}
-                    <a
-                        href="https://gemini.google.com/u/2/app/e2aa1e35bc8fc5cf"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={styles.aiChatBtn}
-                        aria-label="AI Assistant"
-                        title="Chat with AI Assistant"
-                    >
-                        <span className={`material-symbols-outlined ${styles.aiIcon}`}>smart_toy</span>
-                        <span className={styles.aiText}>AI Assistant</span>
-                    </a>
-
-                    {/* Role Switcher hint */}
-                    <div className={styles.roleTag}>{role.charAt(0).toUpperCase() + role.slice(1)}</div>
-
-                    {/* Avatar + Logout */}
-                    <div className={styles.avatarWrap}>
-                        <div className={styles.avatar}></div>
+                    <div className={styles.dropdownWrap}>
+                        <button className={styles.iconBtn} aria-label="Settings" title="Settings">
+                            <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>settings</span>
+                        </button>
                         <div className={styles.dropdownMenu}>
-                            {userName && <span className={styles.dropdownName}>{userName}</span>}
-                            <button onClick={handleLogout} className={styles.logoutBtn}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>logout</span>
+                            <a href="#" className={styles.dropdownItem}>
+                                <span className="material-symbols-outlined">person</span> Account Profile
+                            </a>
+                            <a href="#" className={styles.dropdownItem}>
+                                <span className="material-symbols-outlined">lock_reset</span> Reset Password
+                            </a>
+                            <a href="#" className={styles.dropdownItem}>
+                                <span className="material-symbols-outlined">tune</span> Preferences
+                            </a>
+                            <div className={styles.dropdownDivider}></div>
+                            <button onClick={handleLogout} className={styles.logoutBtn} aria-label="Sign Out" title="Sign Out">
+                                <span className="material-symbols-outlined">logout</span>
                                 Sign Out
                             </button>
                         </div>

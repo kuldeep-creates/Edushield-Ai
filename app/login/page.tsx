@@ -11,6 +11,7 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
 
     // Form state
+    const [school, setSchool] = useState('');
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('student');
@@ -27,12 +28,31 @@ export default function LoginPage() {
 
     const redirectToDashboard = async (uid: string) => {
         const userDoc = await getDoc(doc(db, 'users', uid));
-        const userRole = userDoc.exists() ? userDoc.data().role : 'student';
-        router.push(`/dashboard/${userRole}`);
+
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+
+            // Verify school if it exists in the user document
+            if (data.school && data.school !== school) {
+                setError('Institution verification failed. You do not belong to the selected school.');
+                await auth.signOut();
+                return;
+            }
+
+            router.push(`/dashboard/${data.role || 'student'}`);
+        } else {
+            router.push(`/dashboard/student`);
+        }
     };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!school) {
+            setError('Please select your school or institution.');
+            return;
+        }
+
         if (!identifier || !password) {
             setError('Please enter your credentials.');
             return;
@@ -71,6 +91,11 @@ export default function LoginPage() {
     };
 
     const handleGoogleLogin = async () => {
+        if (!school) {
+            setError('Please select your school or institution before signing in.');
+            return;
+        }
+
         setGoogleLoading(true);
         setError('');
         try {
@@ -184,7 +209,12 @@ export default function LoginPage() {
                                 {/* School */}
                                 <div className={styles.fieldGroup}>
                                     <label className={styles.fieldLabel}>School / Institution</label>
-                                    <select className={styles.inputSleek}>
+                                    <select
+                                        className={styles.inputSleek}
+                                        value={school}
+                                        onChange={(e) => setSchool(e.target.value)}
+                                        required
+                                    >
                                         <option value="">— Select your school —</option>
                                         <option value="Delhi Public School">Delhi Public School</option>
                                         <option value="Kendriya Vidyalaya">Kendriya Vidyalaya</option>
