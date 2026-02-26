@@ -404,25 +404,27 @@ export default function StudentDashboard() {
                                     <p>No high-risk subjects detected. Perfect track record!</p>
                                 </div>
                             ) : (
-                                weakSubjects.map((subject, idx) => (
-                                    <div key={idx} className={styles.weakSubjectItem}>
-                                        <span className={`material-symbols-outlined ${styles.weakIcon}`}>priority_high</span>
-                                        <div className={styles.weakDetails}>
-                                            <h4>{subject.subject_name}</h4>
-                                            <p>{subject.recommendation}</p>
-                                            <div style={{ marginTop: '0.4rem' }}>
-                                                <span className={`${styles.flexBadge} ${subject.at_risk ? styles.badgeCritical : styles.badgeSuccess}`}>
-                                                    {subject.risk_label}
-                                                </span>
-                                                {subject.patches_applied?.map((patch: string, i: number) => (
-                                                    <span key={i} className={`${styles.flexBadge} ${styles.badgeWarning}`} style={{ marginLeft: '0.5rem' }} title={patch}>
-                                                        Patch trigger
+                                <div style={{ maxHeight: '250px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                    {weakSubjects.map((subject, idx) => (
+                                        <div key={idx} className={styles.weakSubjectItem}>
+                                            <span className={`material-symbols-outlined ${styles.weakIcon}`}>priority_high</span>
+                                            <div className={styles.weakDetails}>
+                                                <h4>{subject.subject_name}</h4>
+                                                <p>{subject.recommendation}</p>
+                                                <div style={{ marginTop: '0.4rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                    <span className={`${styles.flexBadge} ${subject.at_risk ? styles.badgeCritical : styles.badgeSuccess}`}>
+                                                        {subject.risk_label}
                                                     </span>
-                                                ))}
+                                                    {subject.patches_applied?.map((patch: string, i: number) => (
+                                                        <span key={i} className={`${styles.flexBadge} ${styles.badgeWarning}`} title={patch}>
+                                                            Patch trigger
+                                                        </span>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             )}
                         </div>
 

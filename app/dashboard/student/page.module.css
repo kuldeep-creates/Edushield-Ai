@@ -83,7 +83,6 @@
     min-width: 0;
 }
 
-/* ---------- Cards & Glassmorphism ---------- */
 .card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
@@ -91,6 +90,9 @@
     padding: 1.5rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .card:hover {
@@ -291,7 +293,7 @@
 @media (min-width: 1024px) {
     .diagnosticGrid {
         grid-template-columns: 1fr 1fr;
-        align-items: start;
+        align-items: stretch;
     }
 }
 
