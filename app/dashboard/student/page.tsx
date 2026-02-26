@@ -8,15 +8,55 @@ import { auth, db } from '@/lib/firebase';
 import styles from './page.module.css';
 import DashboardNav from '@/components/DashboardNav';
 import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, Legend
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+
+interface StudentProfile {
+    regNo?: string;
+    role?: string;
+    socialLinks?: {
+        email?: string;
+        gmail?: string;
+        github?: string;
+        linkedin?: string;
+        other?: string;
+        website?: string;
+    };
+    [key: string]: any;
+}
+
+interface StudentData {
+    studentId: string;
+    name: string;
+    class?: string;
+    stream?: string;
+    schoolName?: string;
+    overallAttendancePct: number;
+    disciplineFlags: number;
+    totalDaysAbsent: number;
+    maxAbsentStreakLength: number;
+    subjects: Record<string, any>;
+    socialLinks?: Record<string, string>;
+    [key: string]: any;
+}
+
+interface ModelPrediction {
+    student_id: string;
+    subject_name: string;
+    risk_probability: number;
+    at_risk: boolean;
+    risk_category: string;
+    risk_label: string;
+    recommendation: string;
+    patches_applied?: string[];
+}
+
 
 export default function StudentDashboard() {
     const router = useRouter();
-    const [userProfile, setUserProfile] = useState<any>(null);
-    const [studentData, setStudentData] = useState<any>(null);
-    const [modelPredictions, setModelPredictions] = useState<any[]>([]);
+    const [userProfile, setUserProfile] = useState<StudentProfile | null>(null);
+    const [studentData, setStudentData] = useState<StudentData | null>(null);
+    const [modelPredictions, setModelPredictions] = useState<ModelPrediction[]>([]);
     const [isFetching, setIsFetching] = useState(true);
     const [selectedSubject, setSelectedSubject] = useState<string>('Average');
 
@@ -26,13 +66,13 @@ export default function StudentDashboard() {
                 try {
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
                     if (userDoc.exists()) {
-                        const profile = userDoc.data();
+                        const profile = userDoc.data() as StudentProfile;
                         setUserProfile(profile);
 
                         if (profile.regNo) {
                             const dataDoc = await getDoc(doc(db, 'studentData', profile.regNo));
                             if (dataDoc.exists()) {
-                                const sData = dataDoc.data();
+                                const sData = dataDoc.data() as StudentData;
                                 setStudentData(sData);
 
                                 // Fetch predictions
@@ -64,7 +104,11 @@ export default function StudentDashboard() {
                                     holiday_factor: 1.0
                                 };
 
-                                fetch('https://edushield-ai-131338020960.asia-south2.run.app/predict/batch', {
+                                const apiUrl = process.env.NEXT_PUBLIC_AI_API_URL
+                                    ? `${process.env.NEXT_PUBLIC_AI_API_URL}/predict/batch`
+                                    : 'https://edushield-ai-131338020960.asia-south2.run.app/predict/batch';
+
+                                fetch(apiUrl, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(cloudPayload)
