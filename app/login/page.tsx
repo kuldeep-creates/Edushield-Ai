@@ -186,20 +186,11 @@ export default function LoginPage() {
                                     <label className={styles.fieldLabel}>School / Institution</label>
                                     <select className={styles.inputSleek}>
                                         <option value="">— Select your school —</option>
-                                        <optgroup label="Government Schools">
-                                            <option value="gov-delhi-001">Govt. Senior Secondary School, Delhi</option>
-                                            <option value="gov-mumbai-001">Govt. High School, Mumbai</option>
-                                            <option value="gov-chennai-001">Govt. Model School, Chennai</option>
-                                            <option value="gov-kolkata-001">Govt. Multipurpose School, Kolkata</option>
-                                        </optgroup>
-                                        <optgroup label="Private Schools">
-                                            <option value="pvt-dps-001">Delhi Public School Network</option>
-                                            <option value="pvt-kv-001">Kendriya Vidyalaya Sangathan</option>
-                                            <option value="pvt-navodaya-001">Jawahar Navodaya Vidyalaya</option>
-                                        </optgroup>
-                                        <optgroup label="Other">
-                                            <option value="other">Other Institution</option>
-                                        </optgroup>
+                                        <option value="Delhi Public School">Delhi Public School</option>
+                                        <option value="Kendriya Vidyalaya">Kendriya Vidyalaya</option>
+                                        <option value="City International">City International</option>
+                                        <option value="Saraswati Vidya Mandir">Saraswati Vidya Mandir</option>
+                                        <option value="Zilla Parishad High">Zilla Parishad High</option>
                                     </select>
                                 </div>
 

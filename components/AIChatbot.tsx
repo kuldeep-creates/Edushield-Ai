@@ -4,27 +4,19 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import styles from "./AIChatbot.module.css";
 
-// Dummy context data simulating what the backend would fetch per-user based on auth
-const DUMMY_CONTEXT_DATA = {
-    student: {
-        role: "Student",
-        name: "Alex Student",
-        grade: "10th",
-        attendance: 85,
-        riskScore: 35,
-        riskFactors: ["Struggling in Physics"],
-        subjects: [{ name: "Math", score: 92 }, { name: "Physics", score: 65 }, { name: "Literature", score: 88 }],
-    },
-    teacher: {
-        role: "Teacher",
-        name: "Sarah Jenkins",
-        grade: "10th Math",
-        attendance: "N/A",
-        riskScore: "N/A",
-        riskFactors: ["32% of students at critical risk in your class", "Attendance drop across 10th grade"],
-        subjects: [],
-    },
-};
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+
+interface ChatContext {
+    role: string;
+    name: string;
+    grade?: string | number;
+    attendance?: string | number;
+    riskScore?: string | number;
+    riskFactors?: string[];
+    subjects?: { name: string; score: number }[];
+}
 
 export default function AIChatbot() {
     const pathname = usePathname();
@@ -34,23 +26,83 @@ export default function AIChatbot() {
     const [isLoading, setIsLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
-    // Auto scroll
+    const [contextData, setContextData] = useState<ChatContext | null>(null);
+
+    // Fetch real context data
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isLoading]);
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const profile = userDoc.data();
 
-    // Only show on dashboard pages
-    if (!pathname || !pathname.startsWith("/dashboard")) return null;
+                        if (profile.role === 'student' && profile.regNo) {
+                            const dataDoc = await getDoc(doc(db, 'studentData', profile.regNo));
+                            if (dataDoc.exists()) {
+                                const sData = dataDoc.data();
+                                const subjects = Object.keys(sData.subjects || {}).map(sub => ({
+                                    name: sub,
+                                    score: sData.subjects[sub].latestScore || 0
+                                }));
 
-    // Determine role based on URL for dummy context mapping
-    const roleContext = pathname.includes("teacher") || pathname.includes("principal") || pathname.includes("district")
-        ? DUMMY_CONTEXT_DATA.teacher
-        : DUMMY_CONTEXT_DATA.student;
+                                setContextData({
+                                    role: "Student",
+                                    name: sData.name || profile.regNo,
+                                    grade: sData.class || "N/A",
+                                    attendance: sData.overallAttendancePct || 0,
+                                    riskScore: "Fetching AI Score...", // Typically this would be pulled from recent predictions cache
+                                    riskFactors: ["Consistent absences", "Low momentum in recent exams"], // Dummy dynamic factors
+                                    subjects: subjects
+                                });
+                            }
+                        } else {
+                            // Non-student context
+                            setContextData({
+                                role: profile.role,
+                                name: profile.school || "Staff Member",
+                                riskFactors: ["Class attendance dropping", "Multiple students at critical risk"]
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch chat context", err);
+                }
+            } else {
+                setContextData(null);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
 
-    const handleSend = async () => {
-        if (!inputValue.trim()) return;
+    // Suggestions based on role
+    const getSuggestions = () => {
+        if (!contextData) return [];
+        if (contextData.role.toLowerCase() === 'student') {
+            return [
+                "How can I improve my grades?",
+                "Am I at risk in any subject?",
+                "What's my attendance impact?",
+                "Draft an improvement plan"
+            ];
+        } else {
+            return [
+                "Which students need intervention?",
+                "Summarize overall class health",
+                "How to boost attendance?",
+                "Generate a parent outreach email"
+            ];
+        }
+    };
 
-        const newMessages = [...messages, { role: "user" as const, content: inputValue }];
+    const handleSuggestionClick = (suggestion: string) => {
+        handleSend(suggestion);
+    };
+
+    const handleSend = async (messageText: string = inputValue) => {
+        if (!messageText.trim()) return;
+
+        const newMessages = [...messages, { role: "user" as const, content: messageText }];
         setMessages(newMessages);
         setInputValue("");
         setIsLoading(true);
@@ -61,7 +113,7 @@ export default function AIChatbot() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     messages: newMessages,
-                    contextData: roleContext,
+                    contextData: contextData || { role: "Guest", name: "User" },
                 }),
             });
 
@@ -104,7 +156,7 @@ export default function AIChatbot() {
                     <div className={styles.chatBody}>
                         {messages.length === 0 ? (
                             <div className={styles.welcome}>
-                                Hi {roleContext.name.split(" ")[0]}! I&apos;m your AI Assistant.
+                                Hi {contextData?.name ? contextData.name.split(" ")[0] : "there"}! I&apos;m your AI Assistant.
                                 I have your academic profile ready. Ask me anything about your progress or intervention plans!
                             </div>
                         ) : (
@@ -116,7 +168,6 @@ export default function AIChatbot() {
                                         </div>
                                     )}
                                     <div className={styles.messageBubble}>
-                                        {/* Extremely simple markdown-to-html conversion for bold and lists */}
                                         <div dangerouslySetInnerHTML={{ __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n- /g, '<br/>• ').replace(/\n/g, '<br/>') }} />
                                     </div>
                                 </div>
@@ -135,19 +186,34 @@ export default function AIChatbot() {
                         <div ref={chatEndRef}></div>
                     </div>
 
-                    <div className={styles.chatInputArea}>
-                        <input
-                            type="text"
-                            className={styles.chatInput}
-                            placeholder="Ask anything..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                            disabled={isLoading}
-                        />
-                        <button className={styles.sendBtn} onClick={handleSend} disabled={isLoading || !inputValue.trim()}>
-                            <span className="material-symbols-outlined">send</span>
-                        </button>
+                    <div className={styles.chatInputContainer}>
+                        {messages.length === 0 && (
+                            <div className={styles.suggestionChips}>
+                                {getSuggestions().map((sug, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => handleSuggestionClick(sug)}
+                                        className={styles.suggestionChip}
+                                    >
+                                        {sug}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <div className={styles.chatInputArea}>
+                            <input
+                                type="text"
+                                className={styles.chatInput}
+                                placeholder="Ask anything..."
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                                disabled={isLoading}
+                            />
+                            <button className={styles.sendBtn} onClick={() => handleSend()} disabled={isLoading || !inputValue.trim()}>
+                                <span className="material-symbols-outlined">send</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
