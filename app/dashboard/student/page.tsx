@@ -210,10 +210,11 @@ export default function StudentDashboard() {
     // --- 1. D. Consistency Score ---
     // Calculate variance of average scores to find high fluctuations
     let consistencyScore = 100;
-    if (trendData.length > 1) {
-        const scores = trendData.map(d => d.score);
-        const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-        const variance = scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length;
+    // Filter out exams that score 0 as they might be un-taken exams inflating the variance
+    const validScores = trendData.filter(d => d.score > 0).map(d => d.score);
+    if (validScores.length > 1) {
+        const mean = validScores.reduce((a, b) => a + b, 0) / validScores.length;
+        const variance = validScores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / validScores.length;
         const stdDev = Math.sqrt(variance);
         // Map stdDev to consistency score (0 stdDev = 100%, high stdDev = low consistency)
         consistencyScore = Math.max(0, 100 - Math.round(stdDev * 3));
