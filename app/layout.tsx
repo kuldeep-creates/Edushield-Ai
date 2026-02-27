@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "material-symbols/outlined.css";
 import "./globals.css";
-import AIChatbot from "@/components/AIChatbot";
 
 export const viewport = {
   themeColor: "#0f172a",
@@ -35,7 +34,6 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
-        <AIChatbot />
       </body>
     </html>
   );
