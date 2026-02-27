@@ -508,8 +508,8 @@ export default function StudentDashboard() {
                         <span style={{ color: '#64748b' }}>&copy; {new Date().getFullYear()} All rights reserved.</span>
                     </div>
                     <div className={styles.footerLinks}>
-                        <a href="/support" className={styles.footerLink}>Help Center</a>
-                        <a href="/privacy" className={styles.footerLink}>Privacy Policy</a>
+                        <a href="/help" className={styles.footerLink}>Help Center</a>
+                        <a href="/security" className={styles.footerLink}>Privacy Policy</a>
                         <a href="/terms" className={styles.footerLink}>Terms of Service</a>
                     </div>
                 </div>
