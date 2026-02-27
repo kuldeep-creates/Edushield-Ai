@@ -11,6 +11,7 @@ export default function ActivatePage() {
     const [showPassword, setShowPassword] = useState(false);
 
     // Form state
+    const [name, setName] = useState('');
     const [school, setSchool] = useState('');
     const role = 'student';
     const [regNo, setRegNo] = useState('');
@@ -26,6 +27,10 @@ export default function ActivatePage() {
     const handleActivate = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!name.trim()) {
+            setError('Please enter your full name.');
+            return;
+        }
         if (!school || !email || !password) {
             setError('Please fill in all details.');
             return;
@@ -57,6 +62,7 @@ export default function ActivatePage() {
             // Save user profile metadata in Firestore
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
+                name: name.trim(),
                 school,
                 role: 'student',
                 regNo: regNo.trim(),
@@ -190,6 +196,20 @@ export default function ActivatePage() {
                                         {error}
                                     </div>
                                 )}
+
+                                {/* Full Name */}
+                                <div className={styles.fieldGroup}>
+                                    <label className={styles.fieldLabel}>Full Name</label>
+                                    <input
+                                        className={styles.inputSleek}
+                                        type="text"
+                                        placeholder="Your full name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        required
+                                        autoComplete="name"
+                                    />
+                                </div>
 
                                 {/* School / Institution */}
                                 <div className={styles.fieldGroup}>

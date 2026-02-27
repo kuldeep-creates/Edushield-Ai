@@ -1,4 +1,67 @@
-/* Minimal global CSS — only structural resets. All page styling lives in page.module.css */
+/* ═══════════════════════════════════════════════════════════
+   EDUSHIELD AI — GLOBAL STYLES
+   Light theme only. CSS variables for consistent theming.
+═══════════════════════════════════════════════════════════ */
+
+:root {
+    /* Backgrounds */
+    --bg-app: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-alt: #f1f5f9;
+    --bg-input: #f8fafc;
+    --bg-nav: #0f172a;
+    --bg-hover: #f1f5f9;
+    --bg-danger: #fff5f5;
+
+    /* Borders */
+    --border: #e2e8f0;
+    --border-subtle: #f1f5f9;
+    --border-danger: #fecaca;
+
+    /* Text */
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --text-inverse: #ffffff;
+
+    /* Accent — Sage/Olive */
+    --accent: #697565;
+    --accent-bg: #eef0ec;
+    --accent-text: #697565;
+    --accent-hover: #546050;
+
+    /* Success */
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+    --success-border: #bbf7d0;
+
+    /* Danger */
+    --danger: #ef4444;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+
+    /* Warning */
+    --warning: #d97706;
+    --warning-bg: #fefce8;
+    --warning-border: #fde68a;
+
+    /* Profile card */
+    --profile-bg: #0f172a;
+    --profile-text: #ffffff;
+    --profile-muted: #94a3b8;
+    --profile-border: rgba(255, 255, 255, 0.1);
+
+    color-scheme: light;
+}
+
+/* ── Global base ────────────────────────────────────────── */
+html,
+body {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+}
+
+/* ── Global Reset ───────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -7,7 +70,7 @@
     padding: 0;
 }
 
-/* Force Material Symbols to load and apply correctly */
+/* ── Material Symbols ───────────────────────────────────── */
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined' !important;
     font-weight: normal;

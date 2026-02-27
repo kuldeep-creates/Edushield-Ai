@@ -21,7 +21,7 @@ const roleLinks: Record<string, NavLink[]> = {
         { label: 'Dashboard', href: '/dashboard/student' },
         { label: 'My Performance', href: '/dashboard/student/performance' },
         { label: 'AI Action Plan', href: '/dashboard/student/action-plan' },
-        { label: 'Schedule Help', href: '#' },
+        { label: 'My Account', href: '/dashboard/student/account' },
     ],
     parent: [
         { label: 'Dashboard', href: '/dashboard/parent' },
@@ -104,13 +104,13 @@ export default function DashboardNav({ role, userName, searchPlaceholder = 'Sear
                             <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>settings</span>
                         </button>
                         <div className={styles.dropdownMenu}>
-                            <a href="#" className={styles.dropdownItem}>
+                            <a href="/dashboard/student/account" className={styles.dropdownItem}>
                                 <span className="material-symbols-outlined">person</span> Account Profile
                             </a>
-                            <a href="#" className={styles.dropdownItem}>
+                            <a href="/dashboard/student/account#password" className={styles.dropdownItem}>
                                 <span className="material-symbols-outlined">lock_reset</span> Reset Password
                             </a>
-                            <a href="#" className={styles.dropdownItem}>
+                            <a href="/dashboard/student/preferences" className={styles.dropdownItem}>
                                 <span className="material-symbols-outlined">tune</span> Preferences
                             </a>
                             <div className={styles.dropdownDivider}></div>

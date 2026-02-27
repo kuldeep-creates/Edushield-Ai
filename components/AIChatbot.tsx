@@ -28,7 +28,7 @@ const TypewriterMessage = ({ content }: { content: string }) => {
             if (i < content.length) {
                 setDisplayed(content.substring(0, i + 1));
                 i++;
-                
+
                 // Keep chat scrolled to bottom as it organically types
                 if (typeof window !== 'undefined') {
                     const chatBody = document.getElementById('edushield-chat-body');
@@ -63,6 +63,7 @@ export default function AIChatbot() {
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     const [contextData, setContextData] = useState<ChatContext | null>(null);
+    const [chatbotEnabled, setChatbotEnabled] = useState<boolean | null>(null); // null = loading
 
     // Fetch real context data
     useEffect(() => {
@@ -72,6 +73,9 @@ export default function AIChatbot() {
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
                     if (userDoc.exists()) {
                         const profile = userDoc.data();
+
+                        // Check chatbot preference — default true if not set
+                        setChatbotEnabled(profile.chatbotEnabled !== false);
 
                         if (profile.role === 'student' && profile.regNo) {
                             const dataDoc = await getDoc(doc(db, 'studentData', profile.regNo));
@@ -103,9 +107,11 @@ export default function AIChatbot() {
                     }
                 } catch {
                     // silently fail — context is optional
+                    setChatbotEnabled(true); // default to visible on error
                 }
             } else {
                 setContextData(null);
+                setChatbotEnabled(false);
             }
         });
         return () => unsubscribe();
@@ -179,6 +185,9 @@ export default function AIChatbot() {
             chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [messages, isLoading]);
+
+    // Hide entirely if pref is disabled, or still loading (null = waiting for auth)
+    if (chatbotEnabled === null || chatbotEnabled === false) return null;
 
     return (
         <>

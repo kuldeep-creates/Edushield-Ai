@@ -31,7 +31,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Always force light theme */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                try {
+                  localStorage.removeItem('edushield-theme');
+                  document.documentElement.removeAttribute('data-theme');
+                  document.documentElement.style.colorScheme = 'light';
+                } catch(e){}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
         {children}
       </body>

@@ -1,0 +1,531 @@
+.page {
+    min-height: 100vh;
+    background: var(--bg-app);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+}
+
+/* ── Loading ───────────────────────────── */
+.loadingWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 1rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    background: var(--bg-app);
+}
+
+.spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Main ──────────────────────────────── */
+.main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 2rem 4rem;
+}
+
+/* ── Page Header ───────────────────────── */
+.pageHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.backBtn {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.backBtn:hover {
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-color: var(--accent);
+}
+
+.pageTitle {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 0.2rem;
+    letter-spacing: -0.03em;
+}
+
+.pageSubtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* ── Auto-save indicator ───────────────── */
+.saveIndicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.saveIndicator span.material-symbols-outlined {
+    font-size: 1rem;
+}
+
+.idle {
+    background: var(--success-bg);
+    color: var(--success);
+    border-color: var(--success-border);
+}
+
+.saving {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.saved {
+    background: var(--success-bg);
+    color: var(--success);
+    border-color: var(--success-border);
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(0.75);
+    }
+}
+
+/* ── Grid & Cards ──────────────────────── */
+.grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.card {
+    background: var(--bg-card);
+    border-radius: 1.25rem;
+    padding: 1.75rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.cardIcon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background: var(--accent-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cardIcon span.material-symbols-outlined {
+    color: var(--accent);
+    font-size: 1.2rem;
+}
+
+.cardTitle {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.2rem;
+}
+
+.cardSubtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* ── Toggles ───────────────────────────── */
+.toggleList {
+    display: flex;
+    flex-direction: column;
+}
+
+.toggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 1rem;
+}
+
+.toggleRow:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.toggleInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.toggleInfo strong {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.toggleInfo span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.toggle {
+    width: 3rem;
+    height: 1.625rem;
+    border-radius: 9999px;
+    background: var(--border);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.25s ease;
+    flex-shrink: 0;
+}
+
+.toggleOn {
+    background: var(--accent) !important;
+}
+
+.toggleThumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    display: block;
+}
+
+.toggleOn .toggleThumb {
+    transform: translateX(1.375rem);
+}
+
+/* ── Info Chip ─────────────────────────── */
+.infoChip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    color: var(--warning);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.infoChip span.material-symbols-outlined {
+    font-size: 1rem;
+    color: var(--warning);
+}
+
+/* ── Language Cards ────────────────────── */
+.langGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 0.75rem;
+}
+
+.langCard {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.875rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: 0.875rem;
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    text-align: left;
+    font-family: inherit;
+}
+
+.langCard:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.langCardActive {
+    border-color: var(--accent) !important;
+    background: var(--accent-bg);
+}
+
+.langCode {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-bg);
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.3rem;
+    letter-spacing: 0.05em;
+}
+
+.langLabel {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.langCheck {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    color: var(--accent);
+}
+
+.langCheck span.material-symbols-outlined {
+    font-size: 1rem;
+}
+
+.hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 0.75rem;
+}
+
+/* ── Theme Grid ────────────────────────── */
+.themeGrid {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.themeCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0;
+    border: 2px solid var(--border);
+    border-radius: 1rem;
+    cursor: pointer;
+    background: var(--bg-card);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    width: 120px;
+    font-family: inherit;
+}
+
+.themeCard:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.themeCardActive {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.themePreview {
+    width: 100%;
+    height: 70px;
+    border-radius: 0.75rem 0.75rem 0 0;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.preview_light {
+    background: #e2e8f0;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+.preview_dark {
+    background: #222831;
+    border-bottom: 1px solid #393E46;
+}
+
+.preview_system {
+    background: linear-gradient(135deg, #e2e8f0 50%, #222831 50%);
+}
+
+.previewBar {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(150, 150, 150, 0.35);
+    width: 100%;
+}
+
+.previewContent {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    justify-content: center;
+}
+
+.previewLine {
+    height: 4px;
+    border-radius: 3px;
+    background: rgba(150, 150, 150, 0.25);
+    width: 80%;
+}
+
+.previewLineShort {
+    height: 4px;
+    border-radius: 3px;
+    background: rgba(150, 150, 150, 0.18);
+    width: 55%;
+}
+
+.themeLabel {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding-bottom: 0.75rem;
+}
+
+.themeCheckmark {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.themeCheckmark span.material-symbols-outlined {
+    font-size: 1rem;
+}
+
+/* ── Related Links ─────────────────────── */
+.relatedLinks {
+    display: flex;
+    flex-direction: column;
+}
+
+.relatedLink {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.875rem 0.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    border-radius: 0.5rem;
+}
+
+.relatedLink:last-child {
+    border-bottom: none;
+}
+
+.relatedLink:hover {
+    background: var(--bg-hover);
+    padding-left: 1rem;
+    color: var(--text-primary);
+}
+
+.relatedLink>span.material-symbols-outlined:first-child {
+    font-size: 1.2rem;
+    color: var(--accent);
+    background: var(--accent-bg);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+}
+
+.relatedLink>span.material-symbols-outlined:last-child {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.relatedLink div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.relatedLink strong {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.relatedLink span:not(.material-symbols-outlined) {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
