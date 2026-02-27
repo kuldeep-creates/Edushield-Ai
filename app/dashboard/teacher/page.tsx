@@ -48,8 +48,8 @@ export default function TeacherDashboard() {
                 // Sort by highest risk first
                 dynamicStudents.sort((a: any, b: any) => b.risk_probability - a.risk_probability);
                 setStudents(dynamicStudents);
-            } catch (error) {
-                console.error("Failed to load predictions:", error);
+            } catch {
+                // silently fail — table will show loading state
             } finally {
                 setIsLoading(false);
             }

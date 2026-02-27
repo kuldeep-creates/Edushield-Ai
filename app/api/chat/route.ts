@@ -1,91 +1,120 @@
+import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-// The generative model to use
-const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    systemInstruction:
-        "You are EduShield AI, an intelligent academic advisor and early warning assistant. " +
-        "You provide precise, actionable, and structured insights based purely on the structured data provided. " +
-        "CRITICAL RULES:\n" +
-        "1. BULLET STRUCTURE: Always use clean bullet points for lists.\n" +
-        "2. SECTION HEADINGS: Use clear, bold section headings (e.g., **Intervention Plan**).\n" +
-        "3. TONE: Professional, analytical, entirely objective. DO NOT use emotional exaggeration (e.g., NO 'Oh no!', NO 'This is terrible!', NO 'I am so excited!').\n" +
-        "4. NO HALLUCINATION: Only reference data explicitly provided in the user's context. Do not make up grades, subjects, or student names.",
+// ─── OpenRouter Client (Primary) ─────────────────────────────────────────────
+// OpenRouter is OpenAI-compatible — just point to their endpoint
+const openRouterClient = new OpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY || "",
+    baseURL: "https://openrouter.ai/api/v1",
+    defaultHeaders: {
+        "HTTP-Referer": "https://edushield.ai",
+        "X-Title": "EduShield AI Mentor",
+    },
 });
 
+// ─── Gemini Client (Fallback) ──────────────────────────────────────────────
+const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
+
+// ─── System Prompt ────────────────────────────────────────────────────────────
+const SYSTEM_PROMPT =
+    "You are EduShield AI, a friendly and professional academic mentor for students. " +
+    "You have access to the student's academic data, but you DON'T use it unless they specifically ask about their performance, subjects, or grades.\n\n" +
+
+    "CRITICAL BEHAVIOR RULES:\n" +
+    "1. CASUAL MESSAGES: If the student says hi, hello, hey, or anything casual — respond warmly and BRIEFLY in 1-2 sentences. Ask what they need help with today. Do NOT analyze their data unprompted.\n" +
+    "2. ACADEMIC QUESTIONS: Only when the student asks about their grades, subjects, improvement, study plans, or career — then use their data to give structured advice.\n" +
+    "3. BREVITY: Keep all responses short. Max 5-6 bullet points for analysis. 1-2 sentences for conversation.\n" +
+    "4. NO REPETITIVE GREETINGS: After the first message, don't say 'Hey [Name]' again every reply.\n" +
+    "5. NEVER stop mid-sentence. Always complete your thought.\n" +
+    "6. Be human, warm, and encouraging. Act like a real mentor — not a data processor.\n\n" +
+
+    "WHEN doing academic analysis (only if asked), use this format:\n" +
+    "• Insight: (brief observation)\n" +
+    "• Root Cause: (short reason)\n" +
+    "• Action Steps: (2-3 specific steps)\n" +
+    "• Next Goal: (one clear target)";
+
+// ─── POST Handler ─────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
     try {
         const { messages, contextData } = await req.json();
 
         if (!messages || messages.length === 0) {
-            return NextResponse.json(
-                { error: "No messages provided" },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: "No messages provided" }, { status: 400 });
         }
 
-        // Build the structured context prompt based strictly on user instructions
+        // Build student context block
         let structuredContext = "";
         if (contextData) {
-            structuredContext = `[CURRENT CONTEXT DATA]
-ROLE: ${contextData.role || "Unknown"}
-Name: ${contextData.name || "Unknown"}
-Class/Grade: ${contextData.grade || "Unknown"}
-Attendance: ${contextData.attendance || "Unknown"}%
-Risk Score: ${contextData.riskScore || "Unknown"}
-Top Risk Factors:
-${contextData.riskFactors ? contextData.riskFactors.map((f: string) => `- ${f}`).join("\n") : "None"}
-Weak Subjects:
-${contextData.subjects ? contextData.subjects.map((s: any) => `- ${s.name}: ${s.score}`).join("\n") : "None"}
-
-Please answer the user's final message in the context of this data. Keep formatting strict.
-[/CURRENT CONTEXT DATA]\n\n`;
+            structuredContext =
+                `[STUDENT CONTEXT]\n` +
+                `Name: ${contextData.name || "Unknown"}\n` +
+                `Role: ${contextData.role || "Unknown"}\n` +
+                `Class/Grade: ${contextData.grade || "Unknown"}\n` +
+                `Attendance: ${contextData.attendance || "Unknown"}%\n` +
+                `Risk Factors: ${contextData.riskFactors ? contextData.riskFactors.join(", ") : "None"}\n` +
+                `Subjects:\n` +
+                `${contextData.subjects ? contextData.subjects.map((s: { name: string; score: number }) => `  - ${s.name}: ${s.score}/100`).join("\n") : "Not available"}\n` +
+                `[/STUDENT CONTEXT]\n\n`;
         }
 
-        // Combine history for Gemini (Gemini uses 'user' and 'model' roles)
-        // We will pass the conversation history, and prepend the context to the very last user message.
-        const history = [];
-        let lastUserMessage = "";
+        // Build message array (OpenAI format)
+        const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+            { role: "system", content: SYSTEM_PROMPT },
+        ];
 
         for (let i = 0; i < messages.length; i++) {
             const msg = messages[i];
             if (i === messages.length - 1 && msg.role === "user") {
-                lastUserMessage = msg.content;
+                chatMessages.push({ role: "user", content: structuredContext + msg.content });
             } else {
-                // Map roles to gemini (assistant -> model, user -> user)
-                history.push({
-                    role: msg.role === "assistant" ? "model" : "user",
-                    parts: [{ text: msg.content }],
+                chatMessages.push({
+                    role: msg.role === "assistant" ? "assistant" : "user",
+                    content: msg.content,
                 });
             }
         }
 
-        // If the last message wasn't user (unlikely), handle it
-        if (!lastUserMessage && messages.length > 0) {
-            lastUserMessage = messages[messages.length - 1].content;
+        // ── 1️⃣  Try OpenRouter (Primary) ──────────────────────────────────────
+        let responseText: string | null = null;
+
+        try {
+            const response = await openRouterClient.chat.completions.create({
+                model: "meta-llama/llama-3.3-70b-instruct:free",
+                messages: chatMessages,
+                max_tokens: 700,
+                temperature: 0.7,
+            });
+            responseText = response.choices[0]?.message?.content || null;
+        } catch {
+            // OpenRouter failed — silently fall through to Gemini
         }
 
-        const finalPrompt = structuredContext + lastUserMessage;
+        // ── 2️⃣  Gemini Fallback ────────────────────────────────────────────────
+        if (!responseText && GEMINI_KEY) {
+            try {
+                const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+                const geminiModel = genAI.getGenerativeModel({
+                    model: "gemini-2.5-flash",
+                    systemInstruction: SYSTEM_PROMPT,
+                });
+                const userTurn = chatMessages.filter(m => m.role !== "system").map(m => m.content).join("\n");
+                const result = await geminiModel.generateContent(userTurn);
+                responseText = result.response.text();
+            } catch {
+                // Gemini also failed — fall through to 503 response
+            }
+        }
 
-        // Start chat session
-        const chatSession = model.startChat({
-            history: history,
-        });
-
-        // Send the final message
-        const result = await chatSession.sendMessage(finalPrompt);
-        const responseText = result.response.text();
+        if (!responseText) {
+            return NextResponse.json({ error: "All AI providers are currently unavailable. Please try again." }, { status: 503 });
+        }
 
         return NextResponse.json({ message: responseText });
-    } catch (error: any) {
-        console.error("Gemini API Error:", error);
-        return NextResponse.json(
-            { error: error.message || "Failed to fetch response from Gemini." },
-            { status: 500 }
-        );
+
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Failed to fetch response.";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

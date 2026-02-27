@@ -68,7 +68,6 @@ export default function ActivatePage() {
             // Route to role-specific dashboard
             router.push(`/dashboard/${role}`);
         } catch (err: any) {
-            console.error('Activation Error:', err);
             if (err.code === 'auth/email-already-in-use') {
                 setError('This Registration No. is already activated. Please go to Login.');
             } else if (err.code === 'auth/weak-password') {

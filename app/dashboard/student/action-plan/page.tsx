@@ -132,7 +132,7 @@ export default function AIActionPlanPage() {
                                             generateMissions(sData, data.results);
                                         }
                                     })
-                                    .catch(err => console.error("AI Error:", err))
+                                    .catch(() => setIsFetching(false))
                                     .finally(() => setIsFetching(false));
                             } else {
                                 setIsFetching(false);
@@ -143,8 +143,7 @@ export default function AIActionPlanPage() {
                     } else {
                         router.push('/login');
                     }
-                } catch (err) {
-                    console.error("Data error:", err);
+                } catch {
                     setIsFetching(false);
                 }
             } else {
@@ -408,7 +407,7 @@ export default function AIActionPlanPage() {
                             <h3>Hyper-Personalization Awaits</h3>
                             <p>These heuristics are generated instantly securely on client-side via AI predictive analytics. For dynamic dialogue, context-aware tutoring, or to ask a specific question, launch the EduShield Agent directly below.</p>
                         </div>
-                        <button className={styles.chatbotActionBtn} onClick={() => alert("Opening Chatbot Simulator...")}>
+                        <button className={styles.chatbotActionBtn} onClick={() => window.dispatchEvent(new CustomEvent('open-chatbot'))}>
                             Talk to AI Assistant
                         </button>
                     </div>

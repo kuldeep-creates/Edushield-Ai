@@ -101,7 +101,7 @@ export default function MyPerformancePage() {
                                     .then(data => {
                                         if (data?.results) setModelPredictions(data.results);
                                     })
-                                    .catch(err => console.error("AI Error:", err))
+                                    .catch(() => setIsFetching(false))
                                     .finally(() => setIsFetching(false));
                             } else {
                                 setIsFetching(false);
@@ -112,8 +112,7 @@ export default function MyPerformancePage() {
                     } else {
                         router.push('/login');
                     }
-                } catch (err) {
-                    console.error("Data error:", err);
+                } catch {
                     setIsFetching(false);
                 }
             } else {

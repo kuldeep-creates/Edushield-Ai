@@ -193,10 +193,18 @@
 
 /* ---------- Badges / Prize System ---------- */
 .badgesContainer {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 1.5rem;
     margin-bottom: 2rem;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+@media (min-width: 768px) {
+    .badgesContainer {
+        justify-content: center;
+    }
 }
 
 .badgeBox {
@@ -211,6 +219,8 @@
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     position: relative;
     overflow: hidden;
+    flex: 1 1 280px;
+    max-width: 450px;
 }
 
 .badgeBox::before {

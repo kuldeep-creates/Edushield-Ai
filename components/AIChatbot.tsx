@@ -18,9 +18,45 @@ interface ChatContext {
     subjects?: { name: string; score: number }[];
 }
 
+const TypewriterMessage = ({ content }: { content: string }) => {
+    const [displayed, setDisplayed] = useState('');
+
+    useEffect(() => {
+        let i = 0;
+        const speed = 15; // smooth animation speed
+        const timer = setInterval(() => {
+            if (i < content.length) {
+                setDisplayed(content.substring(0, i + 1));
+                i++;
+                
+                // Keep chat scrolled to bottom as it organically types
+                if (typeof window !== 'undefined') {
+                    const chatBody = document.getElementById('edushield-chat-body');
+                    if (chatBody) {
+                        chatBody.scrollTop = chatBody.scrollHeight;
+                    }
+                }
+            } else {
+                clearInterval(timer);
+            }
+        }, speed);
+
+        return () => clearInterval(timer);
+    }, [content]);
+
+    // Format safe HTML with markdown styles
+    const formattedHtml = displayed
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n- /g, '<br/>• ')
+        .replace(/\n/g, '<br/>');
+
+    return <div dangerouslySetInnerHTML={{ __html: formattedHtml }} />;
+};
+
 export default function AIChatbot() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+    const [isFullScreen, setIsFullScreen] = useState(false);
     const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
     const [inputValue, setInputValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -65,8 +101,8 @@ export default function AIChatbot() {
                             });
                         }
                     }
-                } catch (err) {
-                    console.error("Failed to fetch chat context", err);
+                } catch {
+                    // silently fail — context is optional
                 }
             } else {
                 setContextData(null);
@@ -80,10 +116,10 @@ export default function AIChatbot() {
         if (!contextData) return [];
         if (contextData.role.toLowerCase() === 'student') {
             return [
-                "How can I improve my grades?",
-                "Am I at risk in any subject?",
-                "What's my attendance impact?",
-                "Draft an improvement plan"
+                "What career paths match my strengths?",
+                "How can I improve my weak subjects?",
+                "What should I study for college?",
+                "Help me build a study schedule"
             ];
         } else {
             return [
@@ -131,6 +167,19 @@ export default function AIChatbot() {
         }
     };
 
+    useEffect(() => {
+        const handleOpenChatbot = () => setIsOpen(true);
+        window.addEventListener('open-chatbot', handleOpenChatbot);
+        return () => window.removeEventListener('open-chatbot', handleOpenChatbot);
+    }, []);
+
+    // Auto-scroll to bottom when messages or loading changes
+    useEffect(() => {
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages, isLoading]);
+
     return (
         <>
             {/* Floating Button */}
@@ -142,22 +191,35 @@ export default function AIChatbot() {
 
             {/* Chat Window */}
             {isOpen && (
-                <div className={styles.chatWindow}>
+                <div className={`${styles.chatWindow} ${isFullScreen ? styles.chatWindowFullScreen : ''}`}>
                     <div className={styles.chatHeader}>
-                        <div className={styles.headerTitle}>
-                            <span className="material-symbols-outlined">smart_toy</span>
-                            <strong>EduShield AI Agent</strong>
+                        <div className={styles.headerInfo}>
+                            <div className={styles.headerAvatar}>
+                                <span className="material-symbols-outlined">psychology</span>
+                            </div>
+                            <div className={styles.headerTextWrap}>
+                                <strong>EduShield Mentor</strong>
+                                <span>AI Guidance Counselor</span>
+                            </div>
                         </div>
-                        <button className={styles.closeBtn} onClick={() => setIsOpen(false)}>
-                            <span className="material-symbols-outlined">close</span>
-                        </button>
+                        <div className={styles.headerActions}>
+                            <button className={styles.iconBtn} onClick={() => setIsFullScreen(!isFullScreen)} title={isFullScreen ? "Exit Full Screen" : "Full Screen"}>
+                                <span className="material-symbols-outlined">
+                                    {isFullScreen ? 'close_fullscreen' : 'open_in_full'}
+                                </span>
+                            </button>
+                            <button className={styles.iconBtn} onClick={() => setIsOpen(false)} title="Close">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <div className={styles.chatBody}>
+                    <div id="edushield-chat-body" className={styles.chatBody}>
                         {messages.length === 0 ? (
                             <div className={styles.welcome}>
-                                Hi {contextData?.name ? contextData.name.split(" ")[0] : "there"}! I&apos;m your AI Assistant.
-                                I have your academic profile ready. Ask me anything about your progress or intervention plans!
+                                <span className="material-symbols-outlined">handshake</span>
+                                <h3>Hey {contextData?.name ? contextData.name.split(" ")[0] : "there"}!</h3>
+                                <p>I'm your personalized AI Mentor. I've synced with your latest academic progress. I can help map out your future career, explore colleges, or guide you past a tough subject!</p>
                             </div>
                         ) : (
                             messages.map((msg, i) => (
@@ -168,7 +230,11 @@ export default function AIChatbot() {
                                         </div>
                                     )}
                                     <div className={styles.messageBubble}>
-                                        <div dangerouslySetInnerHTML={{ __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n- /g, '<br/>• ').replace(/\n/g, '<br/>') }} />
+                                        {msg.role === "assistant" ? (
+                                            <TypewriterMessage content={msg.content} />
+                                        ) : (
+                                            <div dangerouslySetInnerHTML={{ __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n- /g, '<br/>• ').replace(/\n/g, '<br/>') }} />
+                                        )}
                                     </div>
                                 </div>
                             ))
