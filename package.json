@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@lottiefiles/dotlottie-react": "^0.18.3",
     "axios": "^1.13.5",
     "clsx": "^2.1.1",
     "csv-parser": "^3.2.0",

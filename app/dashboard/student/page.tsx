@@ -7,9 +7,13 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import styles from './page.module.css';
 import DashboardNav from '@/components/DashboardNav';
+import { DotLottie, DotLottieReact } from '@lottiefiles/dotlottie-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+
+
+
 
 interface StudentProfile {
     regNo?: string;
@@ -50,6 +54,8 @@ interface ModelPrediction {
     recommendation: string;
     patches_applied?: string[];
 }
+
+
 
 
 export default function StudentDashboard() {
@@ -139,7 +145,33 @@ export default function StudentDashboard() {
     }, [router]);
 
     if (isFetching) {
-        return <div className={styles.loadingScreen}>EduShield AI Generating Dashboard...</div>;
+        return (
+            <div>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100vh',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    background: '#ffffffff',
+                    fontFamily: 'Inter, sans-serif',
+                }}>
+                    <DotLottieReact
+                        src="https://lottie.host/ad87d136-62f0-4a35-8ee1-2f1f79df7ba1/i1aqSJ8PqD.lottie"
+                        loop
+                        autoplay
+                        style={{ width: 620, height: 620, marginBottom: '0.5rem' }}
+                    />
+                    {/* Subtle animated loader */}
+
+                    <p style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+                        Loading your dashboard…
+                    </p>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+            </div>
+        );
     }
 
     if (!studentData) {

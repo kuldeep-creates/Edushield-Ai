@@ -24,8 +24,8 @@ const roleLinks: Record<string, NavLink[]> = {
         { label: 'Teacher Connect', href: '/dashboard/student/chat' },
     ],
     parent: [
-        { label: 'Dashboard', href: '/dashboard/parent' },
-        { label: 'My Child', href: '#' },
+        { label: 'Child Dashboard', href: '/dashboard/student' },
+        { label: 'Child Performance', href: '/dashboard/student/performance' },
         { label: 'Reports', href: '#' },
     ],
     teacher: [
