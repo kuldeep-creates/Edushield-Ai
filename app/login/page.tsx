@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc, getDocs, collection, query, where } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import styles from './page.module.css';
 
@@ -18,7 +18,6 @@ export default function LoginPage() {
 
     // Student login mode: 'id' for Student ID, 'email' for Gmail
     const [studentLoginMode, setStudentLoginMode] = useState<'id' | 'email'>('id');
-
     // Auth state
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -26,29 +25,39 @@ export default function LoginPage() {
 
     const router = useRouter();
 
-    const redirectToDashboard = async (uid: string) => {
-        const userDoc = await getDoc(doc(db, 'users', uid));
+    const redirectToDashboard = async (uid: string, retryCount = 0) => {
+        try {
+            const userDoc = await getDoc(doc(db, 'users', uid));
 
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-
-            // Verify school if it exists in the user document
-            if (data.school && data.school !== school) {
-                setError('Institution verification failed. You do not belong to the selected school.');
-                await auth.signOut();
-                return;
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                // ✅ Credentials already verified by Firebase Auth.
+                // Just get the role and redirect — no extra school block.
+                sessionStorage.setItem('userRole', data.role || 'student');
+                router.push(`/dashboard/${data.role || 'student'}`);
+            } else {
+                // No Firestore profile — fall back using form role
+                const fallbackRole = role === 'other' ? 'dev' : role;
+                sessionStorage.setItem('userRole', fallbackRole);
+                router.push(`/dashboard/${fallbackRole}`);
             }
-
-            router.push(`/dashboard/${data.role || 'student'}`);
-        } else {
-            router.push(`/dashboard/student`);
+        } catch (err: any) {
+            if (err.code === 'unavailable' && retryCount < 2) {
+                // Firestore offline — retry once after 1.5s
+                setTimeout(() => redirectToDashboard(uid, retryCount + 1), 1500);
+            } else {
+                // Give up — route using form role ('other' = dev)
+                const fallbackRole = role === 'other' ? 'dev' : role;
+                sessionStorage.setItem('userRole', fallbackRole);
+                router.push(`/dashboard/${fallbackRole}`);
+            }
         }
     };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!school) {
+        if (role !== 'other' && !school) {
             setError('Please select your school or institution.');
             return;
         }
@@ -64,12 +73,31 @@ export default function LoginPage() {
         try {
             let authEmail = identifier.trim();
 
-            // If student logged in with Student ID, synthesize the Firebase email
             if (role === 'student' && studentLoginMode === 'id') {
-                authEmail = `${authEmail.toLowerCase().replace(/[^a-z0-9]/g, '')}@edushield.ai`;
-            } else if (!authEmail.includes('@')) {
-                // Non-student typed without @ — still convert
-                authEmail = `${authEmail.toLowerCase().replace(/[^a-z0-9]/g, '')}@edushield.ai`;
+                // Student ID mode — find student's email by regNo, then authenticate
+                try {
+                    const snap = await getDocs(
+                        query(collection(db, 'users'), where('regNo', '==', identifier.trim()))
+                    );
+                    const matched = snap.docs.filter(d => d.data().school === school);
+
+                    if (matched.length === 0) {
+                        setError(`No student found with ID "${identifier.trim()}" at "${school}". Check your Student ID and school.`);
+                        setLoading(false);
+                        return;
+                    }
+
+                    authEmail = matched[0].data().email;
+                    if (!authEmail) {
+                        setError('Account email not found. Please contact your school administrator.');
+                        setLoading(false);
+                        return;
+                    }
+                } catch (err: any) {
+                    setError('Lookup failed: ' + (err.message || 'Check your connection.'));
+                    setLoading(false);
+                    return;
+                }
             }
 
             const userCredential = await signInWithEmailAndPassword(auth, authEmail, password);
@@ -91,7 +119,7 @@ export default function LoginPage() {
     };
 
     const handleGoogleLogin = async () => {
-        if (!school) {
+        if (role !== 'other' && !school) {
             setError('Please select your school or institution before signing in.');
             return;
         }
@@ -114,6 +142,7 @@ export default function LoginPage() {
         }
     };
 
+    // Derived: is the current user logging in as a student?
     const isStudent = role === 'student';
 
     return (
@@ -207,22 +236,24 @@ export default function LoginPage() {
                                 )}
 
                                 {/* School */}
-                                <div className={styles.fieldGroup}>
-                                    <label className={styles.fieldLabel}>School / Institution</label>
-                                    <select
-                                        className={styles.inputSleek}
-                                        value={school}
-                                        onChange={(e) => setSchool(e.target.value)}
-                                        required
-                                    >
-                                        <option value="">— Select your school —</option>
-                                        <option value="Delhi Public School">Delhi Public School</option>
-                                        <option value="Kendriya Vidyalaya">Kendriya Vidyalaya</option>
-                                        <option value="City International">City International</option>
-                                        <option value="Saraswati Vidya Mandir">Saraswati Vidya Mandir</option>
-                                        <option value="Zilla Parishad High">Zilla Parishad High</option>
-                                    </select>
-                                </div>
+                                {role !== 'other' && (
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.fieldLabel}>School / Institution</label>
+                                        <select
+                                            className={styles.inputSleek}
+                                            value={school}
+                                            onChange={(e) => setSchool(e.target.value)}
+                                            required
+                                        >
+                                            <option value="">— Select your school —</option>
+                                            <option value="Delhi Public School">Delhi Public School</option>
+                                            <option value="Kendriya Vidyalaya">Kendriya Vidyalaya</option>
+                                            <option value="City International">City International</option>
+                                            <option value="Saraswati Vidya Mandir">Saraswati Vidya Mandir</option>
+                                            <option value="Zilla Parishad High">Zilla Parishad High</option>
+                                        </select>
+                                    </div>
+                                )}
 
                                 {/* Role */}
                                 <div className={styles.fieldGroup}>
@@ -236,7 +267,7 @@ export default function LoginPage() {
                                         <option value="parent">PARENT</option>
                                         <option value="teacher">TEACHER</option>
                                         <option value="principal">PRINCIPAL</option>
-                                        <option value="district">DISTRICT ADMIN</option>
+                                        <option value="other">OTHER</option>
                                     </select>
                                 </div>
 
@@ -316,7 +347,6 @@ export default function LoginPage() {
                                         </button>
                                     </div>
                                 </div>
-
                                 {/* Remember + Forgot */}
                                 <div className={styles.rememberRow}>
                                     <label className={styles.rememberLabel}>
@@ -348,23 +378,19 @@ export default function LoginPage() {
                                     type="button"
                                     onClick={handleGoogleLogin}
                                     disabled={googleLoading}
-                                    style={{
-                                        width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.625rem',
-                                        fontSize: '0.9375rem', fontWeight: 600, color: '#374151', transition: 'all 0.2s',
-                                        opacity: googleLoading ? 0.7 : 1,
-                                    }}
+                                    className={styles.googleBtn}
+                                    style={{ opacity: googleLoading ? 0.7 : 1 }}
                                 >
-                                    <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
-                                        <path d="M43.6 20.5H42V20H24v8h11.3C33.6 33 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.8 29.3 4.8 24 4.8 12.9 4.8 4 13.7 4 24.8s8.9 20 20 20c11 0 19.4-7.7 19.4-19.6 0-1.3-.1-2.6-.4-3.7z" fill="#FFC107" />
-                                        <path d="M6.3 14.7l6.6 4.8C14.6 15.9 19 12.8 24 12.8c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.8 29.3 4.8 24 4.8c-7.6 0-14.2 4.2-17.7 9.9z" fill="#FF3D00" />
-                                        <path d="M24 44.8c5.2 0 9.8-1.9 13.4-5L31 35.2C29.1 36.7 26.7 37.6 24 37.6c-5.2 0-9.5-3-11.3-7.3l-6.6 5.1C9.6 40.7 16.3 44.8 24 44.8z" fill="#4CAF50" />
-                                        <path d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.4 4.4-4.5 5.8l6.4 4.7C40.4 35.9 44 30.8 44 24.8c0-1.3-.1-2.6-.4-3.7z" fill="#1976D2" />
+                                    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
+                                        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853" />
+                                        <path d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.712V4.956H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.044l3.007-2.332z" fill="#FBBC05" />
+                                        <path d="M9 3.576c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.956L3.964 7.288C4.672 5.163 6.656 3.576 9 3.576z" fill="#EA4335" />
                                     </svg>
-                                    {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                                    <span>{googleLoading ? 'Signing in...' : 'Continue with Google'}</span>
                                 </button>
 
-                                {/* Activate link */}
+
                                 <div className={styles.activatePrompt}>
                                     <span className={styles.activateText}>New to EduShield?</span>
                                     <a href="/activate" className={styles.activateLink}>Activate Account</a>

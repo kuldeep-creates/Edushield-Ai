@@ -157,12 +157,21 @@ export default function StudentDashboard() {
                     background: '#ffffffff',
                     fontFamily: 'Inter, sans-serif',
                 }}>
-                    <DotLottieReact
-                        src="https://lottie.host/ad87d136-62f0-4a35-8ee1-2f1f79df7ba1/i1aqSJ8PqD.lottie"
-                        loop
-                        autoplay
-                        style={{ width: 620, height: 620, marginBottom: '0.5rem' }}
-                    />
+                    <div style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '3px solid #e2e8f0',
+                        borderTopColor: '#2563eb',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        marginBottom: '1rem'
+                    }} />
+                    <style>{`
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    `}</style>
                     {/* Subtle animated loader */}
 
                     <p style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>

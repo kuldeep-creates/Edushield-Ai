@@ -11,7 +11,7 @@ interface NavLink {
 }
 
 interface DashboardNavProps {
-    role: 'student' | 'teacher' | 'principal' | 'district' | 'parent';
+    role: 'student' | 'teacher' | 'principal' | 'other' | 'parent' | 'dev';
     userName?: string;
     searchPlaceholder?: string;
 }
@@ -35,18 +35,22 @@ const roleLinks: Record<string, NavLink[]> = {
         { label: 'Reports', href: '#' },
     ],
     principal: [
-        { label: 'Dashboard', href: '/dashboard/principal' },
-        { label: 'Faculty', href: '#' },
-        { label: 'Students', href: '#' },
-        { label: 'Reports', href: '#' },
-        { label: 'Settings', href: '#' },
+        { label: 'Overview', href: '/dashboard/principal' },
+        { label: 'Class Intelligence', href: '/dashboard/principal/classes' },
+        { label: 'Teacher Intelligence', href: '/dashboard/principal/teachers' },
+        { label: 'Register Student', href: '/dashboard/principal/register' },
     ],
-    district: [
-        { label: 'Dashboard', href: '/dashboard/district' },
+    other: [
+        { label: 'Dashboard', href: '/dashboard/other' },
         { label: 'Policy', href: '#' },
         { label: 'Allocations', href: '#' },
         { label: 'Reports', href: '#' },
         { label: 'Settings', href: '#' },
+    ],
+    dev: [
+        { label: 'Dev Console', href: '/dashboard/dev' },
+        { label: 'Provision DB', href: '/onboard' },
+        { label: 'System Logs', href: '#' },
     ],
 };
 
@@ -104,15 +108,17 @@ export default function DashboardNav({ role, userName, searchPlaceholder = 'Sear
                             <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>settings</span>
                         </button>
                         <div className={styles.dropdownMenu}>
-                            <a href="/dashboard/student/account" className={styles.dropdownItem}>
+                            <a href={role === 'dev' ? '/dashboard/dev/account' : '/dashboard/student/account'} className={styles.dropdownItem}>
                                 <span className="material-symbols-outlined">person</span> Account Profile
                             </a>
-                            <a href="/dashboard/student/account#password" className={styles.dropdownItem}>
+                            <a href={role === 'dev' ? '/dashboard/dev/account#password' : '/dashboard/student/account#password'} className={styles.dropdownItem}>
                                 <span className="material-symbols-outlined">lock_reset</span> Reset Password
                             </a>
-                            <a href="/dashboard/student/preferences" className={styles.dropdownItem}>
-                                <span className="material-symbols-outlined">tune</span> Preferences
-                            </a>
+                            {role !== 'dev' && (
+                                <a href="/dashboard/student/preferences" className={styles.dropdownItem}>
+                                    <span className="material-symbols-outlined">tune</span> Preferences
+                                </a>
+                            )}
                             <div className={styles.dropdownDivider}></div>
                             <button onClick={handleLogout} className={styles.logoutBtn} aria-label="Sign Out" title="Sign Out">
                                 <span className="material-symbols-outlined">logout</span>

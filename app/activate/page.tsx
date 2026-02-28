@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import styles from './page.module.css';
 
@@ -11,7 +11,6 @@ export default function ActivatePage() {
     const [showPassword, setShowPassword] = useState(false);
 
     // Form state
-    const [name, setName] = useState('');
     const [school, setSchool] = useState('');
     const role = 'student';
     const [regNo, setRegNo] = useState('');
@@ -27,10 +26,7 @@ export default function ActivatePage() {
     const handleActivate = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!name.trim()) {
-            setError('Please enter your full name.');
-            return;
-        }
+
         if (!school || !email || !password) {
             setError('Please fill in all details.');
             return;
@@ -39,9 +35,9 @@ export default function ActivatePage() {
             setError('Please enter your Student ID / Registration No.');
             return;
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
         if (!emailRegex.test(email.trim())) {
-            setError('Please enter a valid email address.');
+            setError('Please enter a valid email address (e.g. you@gmail.com).');
             return;
         }
 
@@ -49,25 +45,44 @@ export default function ActivatePage() {
         setError('');
 
         try {
-            // Students use synthesized regNo email; other roles use their real email for Firebase Auth
-            const isStudent = role === 'student';
-            const authEmail = isStudent
-                ? `${regNo.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}@edushield.ai`
-                : email.trim().toLowerCase();
+            // 1. Verify that the Student ID exists in the system before activating
+            const cleanRegNo = regNo.trim();
+            const studentRef = doc(db, 'studentData', cleanRegNo);
+            const studentSnap = await getDoc(studentRef);
 
-            // Create user in Firebase Auth
+            if (!studentSnap.exists()) {
+                setError('Invalid Student ID / Registration No. We could not find a record matching this ID across our partner schools. Contact your school admin.');
+                setLoading(false);
+                return;
+            }
+
+            // 1.5 Verify that this Student ID hasn't ALREADY been activated
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('regNo', '==', cleanRegNo));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                setError('This Student ID has already been activated! If you forgot your password, please go to the Login page and click "Forgot Password?".');
+                setLoading(false);
+                return;
+            }
+
+            // 2. Validation done — create Firebase Auth account with student's email
+            const authEmail = email.trim().toLowerCase();
             const userCredential = await createUserWithEmailAndPassword(auth, authEmail, password);
             const user = userCredential.user;
 
-            // Save user profile metadata in Firestore
+            const studentData = studentSnap.data() || {};
+            const actualName = studentData.Name || 'Student';
+
+            // Save user profile in Firestore
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
-                name: name.trim(),
+                name: actualName,
                 school,
                 role: 'student',
-                regNo: regNo.trim(),
-                email: email.trim().toLowerCase(),
-                authEmail,
+                regNo: cleanRegNo,
+                email: authEmail,
                 createdAt: new Date().toISOString()
             });
 
@@ -76,6 +91,8 @@ export default function ActivatePage() {
         } catch (err: any) {
             if (err.code === 'auth/email-already-in-use') {
                 setError('This Registration No. is already activated. Please go to Login.');
+            } else if (err.code === 'auth/invalid-email') {
+                setError('Invalid email address. Please use a real email like you@gmail.com');
             } else if (err.code === 'auth/weak-password') {
                 setError('Password should be at least 6 characters.');
             } else {
@@ -182,7 +199,7 @@ export default function ActivatePage() {
                                     <span className="material-symbols-outlined">person_add</span>
                                 </div>
                                 <h2 className={styles.formTitle}>Student Activation</h2>
-                                <p className={styles.formSubtitle}>Link your Student ID to get started</p>
+
                             </div>
 
                             {/* Form */}
@@ -197,19 +214,7 @@ export default function ActivatePage() {
                                     </div>
                                 )}
 
-                                {/* Full Name */}
-                                <div className={styles.fieldGroup}>
-                                    <label className={styles.fieldLabel}>Full Name</label>
-                                    <input
-                                        className={styles.inputSleek}
-                                        type="text"
-                                        placeholder="Your full name"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        required
-                                        autoComplete="name"
-                                    />
-                                </div>
+
 
                                 {/* School / Institution */}
                                 <div className={styles.fieldGroup}>

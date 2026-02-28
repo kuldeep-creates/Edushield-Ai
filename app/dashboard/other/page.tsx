@@ -3,11 +3,11 @@
 import styles from './page.module.css';
 import DashboardNav from '@/components/DashboardNav';
 
-export default function DistrictDashboard() {
+export default function OtherDashboard() {
     return (
         <div className={styles.container}>
             {/* Top Navigation Bar */}
-            <DashboardNav role="district" searchPlaceholder="Search districts, schools..." />
+            <DashboardNav role="other" searchPlaceholder="Search global, companies, schools..." />
 
             {/* Main Content */}
             <main className={styles.main}>
@@ -15,7 +15,7 @@ export default function DistrictDashboard() {
 
                     {/* Breadcrumbs */}
                     <nav className={styles.breadcrumbs}>
-                        <a href="#" className={styles.breadcrumbLink}>District</a>
+                        <a href="#" className={styles.breadcrumbLink}>Global / Other</a>
                         <span className={`material-symbols-outlined ${styles.breadcrumbDivider}`}>chevron_right</span>
                         <a href="#" className={styles.breadcrumbText}>School</a>
                         <span className={`material-symbols-outlined ${styles.breadcrumbDivider}`}>chevron_right</span>
@@ -25,7 +25,7 @@ export default function DistrictDashboard() {
                     {/* Page Header */}
                     <div className={styles.pageHeader}>
                         <div className={styles.pageTitleBlock}>
-                            <h1 className={styles.pageTitle}>District Policy &amp; Strategy Dashboard</h1>
+                            <h1 className={styles.pageTitle}>Global &amp; Corporate Policy Strategy Dashboard</h1>
                             <p className={styles.pageSubtitle}>
                                 Overview of intervention impact and resource allocation strategies across the region.
                             </p>
@@ -258,7 +258,7 @@ export default function DistrictDashboard() {
                             <table className={styles.dataTable}>
                                 <thead>
                                     <tr>
-                                        <th>District / School</th>
+                                        <th>Organization / School</th>
                                         <th>Current Risk Score</th>
                                         <th>Recommended Allocation</th>
                                         <th>Projected Impact</th>
